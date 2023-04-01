@@ -45,3 +45,8 @@ The Go status flag is set by the Controller on the processor via I2C.
 The Processor runs its code (currently 10 times for the 10 XY questions for the mandlebrot code. The processor stores the 10 answers  (an array unint16_t) as an array of uint8_t in the I2C accessable memory, and sets the DONE flag in the Processors Status byte. 
 The Controller polls the Processors for Done flags and fetches the Answers via I2C as a uint8_t array converted to uint16_t's and stored into results pointed to by the processor it was assigned to. The Controller then sets the Prosessors Status flag to READY
 This continues until all of the Questions have been asked, and all of the Processors are showing READY. 
+
+# Warning
+This code is all Proof of principle. Much of it works. Some of it gives reasonable results. Does it work, not for all cases. Does it give a good mandlebrot output. Well it did, but Ive changed many many things since I last actually looked at its output. 
+Basically if you are going to use this code to pilot a rocket, you will end up smashing into a planet at mach something rediculous. 
+You have been warned. 
