@@ -30,3 +30,14 @@
 *.exe
 *.out
 *.app
+
+#TempFiles
+*~
+tmp.*
+temp.*
+
+#Oracfiles
+backup2orac
+
+#Build
+build
