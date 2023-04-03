@@ -7,6 +7,7 @@
 #include "common.h"
 #include "controller.c"
 #include "proc.c"
+#include "controller_test.c"
 
 int main() {
     // overclock a bit,... of course :) 
@@ -26,36 +27,46 @@ int main() {
     printf("Lump %02X Questions %02X[%02X] - Answers %02X[%02X]\n",LUMPSIZE,quest,QUESTIONSIZE,ans,ANSWERSIZE);
     
     if (MSselect()){
-        do_slave();
+        do_proc();
     }else{
         char s[3];
         debug=1;
+        setup_master();
         while(1){
-            puts("\n\nMaster\n (a)Assert, (t)Statuses, (s)Scan, (p)dump Proc 20, (b)dump 17 \n (m)Master, (d)Debug, (r)Results \n");
+            puts("\n\nController\n (t)Statuses, (s)Scan, (p)dump Addr 0x20, (b)dump addr 0x17 ");
+            puts(" (c)Controller, (d)Debug, (r)Results (u) check unallocated");
             scanf("%1s", s);
-            if(s[0]=='a'){
-                do_assert_test();
-            }
+            //if(s[0]=='a'){
+            //    do_assert_test();
+            //}
             if(s[0]=='t'){
+                debug=0; 
                 do_master_statuses();
             }
             if(s[0]=='s'){
-              do_master_scan();
+                do_master_scan();
             }
             if(s[0]=='p'){
-              do_master_dump(0x20);
+                do_master_dump(0x20);
             }
             if(s[0]=='b'){
-              do_master_dump(0x17);
+                do_master_dump(0x17);
             }
             if(s[0]=='d'){
-              do_master(3);
+                // run controller with debug
+                do_master(5);
             }
-            if(s[0]=='m'){
-              do_master(0);
+            if(s[0]=='c'){
+                // run controller no debug
+                do_master(0);
             }
             if(s[0]=='r'){
-              do_results();
+                do_results();
+            }
+            if(s[0]=='u'){
+                setup_master();
+                do_assert_test();
+                check_for_unallocated_processors();
             }
             sleep_ms(10);
         }

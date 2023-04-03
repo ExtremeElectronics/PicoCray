@@ -36,7 +36,7 @@ static void i2c_slave_handler(i2c_inst_t *i2c, i2c_slave_event_t event) {
     }
 }
 
-static void setup_slave_io(){
+static void setup_proc_io(){
    //Slave Assert
     gpio_init(I2C_Assert);
     gpio_pull_down(I2C_Assert);
@@ -44,7 +44,7 @@ static void setup_slave_io(){
 
 }
 
-static void setup_slave() {
+static void setup_proc() {
     gpio_init(I2C_SDA_PIN);
     gpio_set_function(I2C_SDA_PIN, GPIO_FUNC_I2C);
     gpio_pull_up(I2C_SDA_PIN);
@@ -86,8 +86,8 @@ void ClearSlaveAssert(){
     gpio_put(LED_PIN,0);
 }
 
-//retuns 0 is not asserted, 1 if another slave asserted, 2 if THIS slave asserted
-int TestSlaveAssert(){
+//retuns 0 is not asserted, 1 if another proc asserted, 2 if THIS slave asserted
+int TestProcAssert(){
     int r=0;
     if(context.asserting==true){
          r=2;
@@ -112,18 +112,18 @@ int mandelbrot(double r,double  i) {
     return steps;
 }
 
-void do_slave(){
+void do_proc(){
      int dc=0;
      puts("\nI2C Slave selected\n");
      
-     sleep_ms(1000+irand(5000)); //random delay starting slave.
+     sleep_ms(1000+irand(5000)); //random delay starting proc.
 
-     setup_slave_io();
+     setup_proc_io();
      
      clear_context();     
      int sav=0;
      printf("Waiting for Assert lock \n");
-     while ((sav=TestSlaveAssert())<2){
+     while ((sav=TestProcAssert())<2){
          //printf("Slave Assert:%i\n",sav);
          putchar('-');
          if(sav==0){
@@ -134,9 +134,9 @@ void do_slave(){
          sleep_ms(100);
      }//while
 
-     setup_slave();
+     setup_proc();
 
-     printf("/n Slave loop - Assert %i\n",TestSlaveAssert());
+     printf("/n Slave loop - Assert %i\n",TestProcAssert());
      printf("Listning on %02X\n",I2C_DEFAULT_ADDRESS);
      while(1){
          if(dc++>10000){
@@ -150,9 +150,9 @@ void do_slave(){
              if(context.mem[cmd_debug]>0)printf("Poll status %i[%i] \n",context.mem[poll],context.changed[poll]);
 
              if(context.changed[cmd_sl_addr ]){
-                 if (TestSlaveAssert()==2){
+                 if (TestProcAssert()==2){
                    if (context.mem[poll]==0){
-                     //i2c address change ONLY IF asserting slave
+                     //i2c address change ONLY IF asserting proc
                      i2c_address=context.mem[cmd_sl_addr];
                      puts("\nI2C SLAVE address change");
                      //restart handler on new address
@@ -160,7 +160,7 @@ void do_slave(){
                      i2c_slave_deinit(I2C_MOD);
                      sleep_ms(10);                     
                      i2c_init(I2C_MOD, I2C_BAUDRATE);
-                     // configure for slave mode
+                     // configure for proc mode
                      i2c_slave_init(I2C_MOD, i2c_address, &i2c_slave_handler);
 
                      ClearSlaveAssert();

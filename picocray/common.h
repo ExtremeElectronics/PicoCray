@@ -19,15 +19,15 @@ static const uint I2C_BAUDRATE = 400000; // 400 kHz
 #define I2C_Assert 13 // pico can only be promoted to a process if locally driven high, stops fighting for i2c addresses
 #define I2C_MS_SELECT 22 // take pin low to become a master
 
+#define LED_PIN 25 //Busy Led 
+
 //start of processor addresses
 #define I2C_PROC_LOWEST_ADDR  0x20 //lowest processor address
-#define I2C_DEFAULT_ADDRESS  0x17 //default address when owered up, not allocated a processor
+#define I2C_DEFAULT_ADDRESS  0x17 //default address when powered up, not allocated a processor
 
 static uint i2c_address = I2C_DEFAULT_ADDRESS; //default I2C address
 
 #define MAXProc 16//max number of processors
-
-#define LED_PIN 25 //Busy Led 
 
 //register locations
 
@@ -71,7 +71,7 @@ void enumerate_status(int stat){
 #define QUESTIONSIZE LUMPSIZE*2*8 //LUMPSIZE 8 byte doubles x 2
 #define ANSWERSIZE LUMPSIZE*2 //LUMPSIZE uint16's 
 
-//questions location 
+//questions location in proc I2C memory
 #define quest 0x10 
 
 //answers location
@@ -80,6 +80,7 @@ void enumerate_status(int stat){
 #if (quest+QUESTIONSIZE>255)
   #error Variables too big for i2c ram
 #endif
+
 //shared I2Cram structure
 static struct
 {
@@ -105,7 +106,7 @@ union {
         double dx[LUMPSIZE];
         double dy[LUMPSIZE];
     };    
-}dchar;
+} dchar;
 
 int irand(int x){
     int y=rand();
@@ -132,11 +133,15 @@ bool MSselect(){
 
 
 void Show_data(int s, int e,uint8_t *  mem ){
-     for (int m=s; m<e; m+=16){
-         puts("");
-         for (int mr=0;mr<16; mr++){
-             printf("%02X ",mem[m+mr]) ;
-         }//for
+     int c=0;
+     for (int m=s; m<e; m++){
+         printf("%02X ",mem[m]) ;
+         if(c==7){printf("- ");}
+         if(c++>14){
+             c=0;
+             puts("");    
+         }    
+
      }//for
 }
 
