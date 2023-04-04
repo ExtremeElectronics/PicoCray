@@ -145,3 +145,17 @@ void Show_data(int s, int e,uint8_t *  mem ){
      }//for
 }
 
+int mandelbrot(double r,double  i) {
+    int max_iterations=100;
+    double ir = 0;
+    double nir;
+    double ii = 0;
+    int steps = 0;
+    while (ir*ir+ii*ii <= 4 && steps < max_iterations) {
+        nir = ir*ir-ii*ii+r;
+        ii = 2*ir*ii + i;
+        ir = nir;
+        ++steps;
+    }
+    return steps;
+}

@@ -8,6 +8,8 @@
 //define the size of the mand
 #define MaxMandX 240
 #define MaxMandY 320
+//#define MaxMandX 40
+//#define MaxMandY 20
 
 int MandYOffset=0;
 int MandXOffset=0;
@@ -150,12 +152,12 @@ void set_poll_status(uint8_t proc,uint8_t status){
     if (c!=2){printf("Failed to send status\n");}
 }
 
-int get_next_question(uint8_t proc){
+int XXget_next_question(uint8_t proc){
     int r=0;
     int lump;
-    if (mandx+LUMPSIZE>=MaxMandX){
+    if (mandx+LUMPSIZE>MaxMandX){
         mandx=0;
-        if (mandy++>=MaxMandY){
+        if (mandy++>MaxMandY){
             r=1;
         }
     }
@@ -169,11 +171,58 @@ int get_next_question(uint8_t proc){
             if(debug>3) printf("QC %i",questioncnt);
             if (debug>3) printf("%i %i dx:%f,%f \n",lump,questioncnt,dchar.dx[lump],dchar.dy[lump]); 
             answerref[proc][lump]=questioncnt;
-            if(MaxMandX * MaxMandY<questioncnt)printf("\nITs all gone horribly wrong!\n\n");
+            if(MaxMandX * MaxMandY<questioncnt){
+               printf("\nIT's all gone horribly wrong! \n %i %i %i %i\n\n",mandx,mandy,lump,questioncnt);
+               while(1){
+                 sleep_ms(100);
+               }
+            }   
             questioncnt++;
        }
    }
    if (debug>0)printf("return from get\n");
+   return r;
+}
+
+int next_mand(){
+    int r=0;
+    mandx++;
+    if (mandx>=MaxMandX){
+        mandx=0;
+        mandy++;
+        if (mandy>=MaxMandY){
+            r=1;
+        }
+    }
+    questioncnt++;
+    return r;
+}
+
+
+int get_next_question(uint8_t proc){
+    int r=0;
+    int lump=0;
+    int q;
+        printf("\n");
+        if (debug>0)printf("MandX:%i,MandY:%i for proc: %i\n",mandx,mandy,proc);
+        while (lump<LUMPSIZE && r==0){
+            dchar.dx[lump]=(double)(mandx-MandXOffset)/MaxMandX*5;
+            dchar.dy[lump]=(double)(mandy-MandYOffset)/MaxMandY*3;
+            if (debug>3) q=mandelbrot(dchar.dx[lump],dchar.dy[lump]);
+            answerref[proc][lump]=questioncnt;
+            if (debug>3) printf("%i %i dx:%f,%f q=%i \n",lump,questioncnt,dchar.dx[lump],dchar.dy[lump],q); 
+  
+            if(MaxMandX * MaxMandY<questioncnt){
+               printf("\nIT's all gone horribly wrong! \n %i %i %i\n\n",mandx,mandy,questioncnt);
+               while(1){
+                 sleep_ms(100);
+               }//while
+            }  //if
+            
+//             if (debug>3)printf("%i %i %i %i %i\n",mandx,mandy,lump,questioncnt,r); 
+            r=next_mand();
+            lump++;
+        }//while
    return r;
 }
 
@@ -185,7 +234,7 @@ int send_questions_to_proc(uint8_t proc){
         rbuf[a+1]=dchar.arr[a];
     }
     if (debug>2) printf("Send to Proc:%i \n",proc);
-    if (debug>3) {
+    if (debug>5) {
         Show_data(0,QUESTIONSIZE,dchar.arr);
         printf("\n");
     }
@@ -206,13 +255,13 @@ int do_answers(uint8_t proc){
          for(int a=0;a<ANSWERSIZE;a++){
              ichar.arr[a]=rbuf[a];
          }
-         if (debug>3){
+         if (debug>5){
              Show_data(0,ANSWERSIZE,ichar.arr);
              printf("\n");
          }    
          for(int lump=0;lump<LUMPSIZE;lump++){
              //get pointer into results from the proc and lump via answerref
-             if (debug>2) printf(" Results %i %i %i \n",proc,lump,answerref[proc][lump]);
+    //         if (debug>2) printf(" Results %i %i %i \n",proc,lump,answerref[proc][lump]);
              results[ answerref[proc][lump] ]=ichar.i[lump];
              if (debug>2) printf("%i ",ichar.i[lump]);                  
          }

@@ -96,7 +96,7 @@ int TestProcAssert(){
     }
     return r;
 }
-
+/*
 int mandelbrot(double r,double  i) {
     int max_iterations=100;
     double ir = 0;
@@ -110,8 +110,7 @@ int mandelbrot(double r,double  i) {
         ++steps;
     }
     return steps;
-}
-
+*/
 void do_proc(){
      int dc=0;
      puts("\nI2C Slave selected\n");
@@ -181,11 +180,12 @@ void do_proc(){
                  puts("");
                  context.changed[poll]=poll_busy;
                  //should have all variables to run
-                 for(int a=0;a<16;a++){
+                 for(int a=0;a<QUESTIONSIZE;a++){
                      dchar.arr[a]=context.mem[quest+a];
                  }
                  for(int lumps=0;lumps<LUMPSIZE;lumps++){
                      ichar.i[lumps]=mandelbrot(dchar.dx[lumps],dchar.dy[lumps]);
+                     if(debug)printf("x%f y%f %i\n",dchar.dx[lumps],dchar.dy[lumps],ichar.i[lumps]); 
                  }
                  //printf("Ichari %i\n",ichar.i);
                  for(int a=0;a<ANSWERSIZE;a++){
