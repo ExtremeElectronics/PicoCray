@@ -18,7 +18,7 @@ int proc_dump(char addr,char MemAddress,int msg_len,uint8_t * buf){
     return r;
 }
 
-void do_master_scan(){
+void do_I2C_scan(){
     puts("\nI2C Master Scan selected\n");
     uint8_t rbuf[2];
     int ret;
@@ -40,24 +40,24 @@ void do_master_scan(){
     }
 }
 
-void do_master_dump(int addr){
+void do_I2C_dump(int addr){
     printf("\nI2C Master Dump %02X selected\n",addr);
     uint8_t rbuf[257];
     if (proc_dump(addr,0,256,rbuf)>=0){
         puts("\n");
-        Show_data(0,128,rbuf);
+        Show_data(0,256,rbuf);
      }
      sleep_ms(500);
 }
 
-void do_master_statuses(){
+void do_proc_statuses(){
    int p;
    int s;
    for (p=0;p<MAXProc;p++){
       s=GetProcStatus(p+I2C_PROC_LOWEST_ADDR);
-      if(s>0){
-          printf("Proc:%i Status:\n",p);
-
+      if(s>=0){
+          printf("Proc:%i Status: ",p);
+          enumerate_status(s);
       }
    }   
 }
@@ -70,6 +70,7 @@ void do_assert_test(){
    }  
 }
 
+/*
 void do_results(){
     printf("\n");
     for(int y=0;y<MaxMandY;y++){
@@ -79,3 +80,65 @@ void do_results(){
         printf("\n");
     }
 }
+
+
+void do_res_disp(){
+    printf("\nRes Disp\n");
+
+    init_disp();
+
+    int c=0;
+    for(int y=0;y<MaxMandY;y++){
+        for(int x=0;x<MaxMandX;x++){
+            c=results[x+y*MaxMandX] % 16;
+            GFX_drawPixel(x,y,mapping[c]);
+        }
+        printf("\n");
+    }
+}
+*/
+
+void test_display(){
+    uint16_t x,y,lump;
+//    LCD_initDisplay();
+//    LCD_setRotation(1);
+//    GFX_createFramebuf();
+//    while (true)
+//    {
+//        GFX_clearScreen();
+//        GFX_setCursor(0, 0);
+//        GFX_printf("Hello GFX!\n%d", c++);
+//        GFX_flush();
+//        sleep_ms(500);
+//    }
+//    buff = malloc(100 * 1 * sizeof(uint16_t));
+    for (x=0;x<100;x+=10){
+      for (y=0;y<100;y++){
+         for (lump=0;lump<LUMPSIZE;lump++){
+//         printf("%i %i\n",x,y);
+        buff[lump]=mapping[7];
+//        GFX_drawPixel(x+lump,y,mapping[data[lump] %16]);
+        //LCD_WritePixel(x+lump,y,mapping[data[lump] %16]);
+         //LCD_WritePixel(x+lump,y,mapping[7]);
+         }
+         
+         LCD_WriteBitmap(x, y, LUMPSIZE,1, buff);
+//         sleep_ms(10);
+      }
+    }
+    sleep_ms(500);    
+//    free(buff);
+
+    
+    
+}
+
+void resetprocstatus(){
+   uint8_t p;
+   for (p=0;p<MAXProc;p++){
+          set_poll_status(p,poll_ready);
+          printf("\nPoll status reset %i ",p);
+   }
+   printf("\n");
+}
+

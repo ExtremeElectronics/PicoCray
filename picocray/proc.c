@@ -96,21 +96,7 @@ int TestProcAssert(){
     }
     return r;
 }
-/*
-int mandelbrot(double r,double  i) {
-    int max_iterations=100;
-    double ir = 0;
-    double nir;
-    double ii = 0;
-    int steps = 0;
-    while (ir*ir+ii*ii <= 4 && steps < max_iterations) {
-        nir = ir*ir-ii*ii+r;
-        ii = 2*ir*ii + i;
-        ir = nir;
-        ++steps;
-    }
-    return steps;
-*/
+
 void do_proc(){
      int dc=0;
      puts("\nI2C Slave selected\n");
@@ -135,74 +121,89 @@ void do_proc(){
 
      setup_proc();
 
-     printf("/n Slave loop - Assert %i\n",TestProcAssert());
+     printf("\n Slave loop - Assert %i\n",TestProcAssert());
      printf("Listning on %02X\n",I2C_DEFAULT_ADDRESS);
      while(1){
+         sleep_us(100);
+
          if(dc++>10000){
-           putchar('.');
+//           putchar('.');
            dc=0;
          }
-         //sleep_ms(1);
          if(context.datachanged==true){ 
-             if(context.mem[cmd_debug]>0)puts("\nDataChanged \n");
-//             Show_data(0,128,context.mem);
-             if(context.mem[cmd_debug]>0)printf("Poll status %i[%i] \n",context.mem[poll],context.changed[poll]);
+             context.datachanged=false;
 
+//             if(context.mem[cmd_debug]>0) printf("Poll status %i[%i] \n",context.mem[poll],context.changed[poll]);
+             // address change request 
              if(context.changed[cmd_sl_addr ]){
-                 if (TestProcAssert()==2){
-                   if (context.mem[poll]==0){
-                     //i2c address change ONLY IF asserting proc
-                     i2c_address=context.mem[cmd_sl_addr];
-                     puts("\nI2C SLAVE address change");
-                     //restart handler on new address
+                 context.changed[cmd_sl_addr ]=false;                
+                 if(context.asserting==true){
+                     if (context.mem[poll]==0){
+                         //i2c address change ONLY IF asserting proc
+                         i2c_address=context.mem[cmd_sl_addr];
+                         puts("\nI2C SLAVE address change");
+                         //restart handler on new address
                      
-                     i2c_slave_deinit(I2C_MOD);
-                     sleep_ms(10);                     
-                     i2c_init(I2C_MOD, I2C_BAUDRATE);
-                     // configure for proc mode
-                     i2c_slave_init(I2C_MOD, i2c_address, &i2c_slave_handler);
+                         i2c_slave_deinit(I2C_MOD);
+                         sleep_ms(10);                     
+                         i2c_init(I2C_MOD, I2C_BAUDRATE);
+                         // configure for proc mode
+                         i2c_slave_init(I2C_MOD, i2c_address, &i2c_slave_handler);
 
-                     ClearSlaveAssert();
-                     printf("Listning on %02X\n",i2c_address);
-                     //signal ready
-                     puts("Poll Ready");
-                     context.mem[poll]=poll_ready;
-                     //Show_data(0,128);
-                  }
-                }else{
-                     puts("Not Changing Address, not got assert");
-                }//if else
-                context.changed[cmd_sl_addr ]=false;                
+                         ClearSlaveAssert();
+                         printf("Listning on %02X\n",i2c_address);
+                         //signal ready
+                         puts("Poll Ready");
+                         context.mem[poll]=poll_ready;
+                         //Show_data(0,128);
+                    }
+                 }else{
+                      puts("Not Changing Address, not got assert");
+                 }//if else
              }//if context ... cmd_sl_addr 
             
-             if(context.changed[poll] && context.mem[poll]==2){
-                 gpio_put(LED_PIN,1);
-                 puts("");
-                 context.changed[poll]=poll_busy;
-                 //should have all variables to run
-                 for(int a=0;a<QUESTIONSIZE;a++){
-                     dchar.arr[a]=context.mem[quest+a];
-                 }
-                 for(int lumps=0;lumps<LUMPSIZE;lumps++){
-                     ichar.i[lumps]=mandelbrot(dchar.dx[lumps],dchar.dy[lumps]);
-                     if(debug)printf("x%f y%f %i\n",dchar.dx[lumps],dchar.dy[lumps],ichar.i[lumps]); 
-                 }
-                 //printf("Ichari %i\n",ichar.i);
-                 for(int a=0;a<ANSWERSIZE;a++){
-                     context.mem[ans+a]=ichar.arr[a];
-                 }           
-//                 puts("");
-                 gpio_put(LED_PIN,0);
-//                 Show_data(0,128,context.mem);                 
-                 context.mem[poll]=poll_done;
-             } //if(context.changed[poll]==poll_go
-             
-             context.datachanged=false;
+             //status changed to go
+             if(context.changed[poll]){
+                 context.changed[poll]=false;
+
+                 if( context.mem[poll]==poll_go){
+                     gpio_put(LED_PIN,1);
+//                     puts("");
+                     context.mem[poll]=poll_busy;
+                     //should have all variables to run
+                     for(int a=0;a<QUESTIONSIZE;a++){
+                         dchar.arr[a]=context.mem[quest+a];
+                     }
+                     for(uint8_t lumps=0;lumps<LUMPSIZE;lumps++){
+           //            ichar.i[lumps]=mandelbrot(dchar.dx[lumps],dchar.dy[lumps]);
+           //            if(debug)printf("x%f y%f %i\n",dchar.dx[lumps],dchar.dy[lumps],ichar.i[lumps]); 
+                         ichar.i[lumps]=mandelbrot(dchar.dx[lumps],dchar.dy);
+                         if(debug)printf("x%f y%f %i\n",dchar.dx[lumps],dchar.dy,ichar.i[lumps]); 
+                         tight_loop_contents();
+                     }
+                     for(uint8_t a=0;a<ANSWERSIZE;a++){
+                         context.mem[ans+a]=ichar.arr[a];
+                     }           
+                     gpio_put(LED_PIN,0);
+                     context.mem[poll]=poll_done;
+                     context.changed[poll]=0;
+                 }    //poll go
+
+                 if(context.mem[poll]==poll_wait){
+                     context.mem[poll]=poll_waiting;
+                     if(debug)printf("Wait\n");
+                 } //poll wait
+
+             } //if(context.changed[poll]
+/*             
+             if(context.changed[poll] && context.mem[poll]==poll_wait){
+                if(debug)printf("Wait\n");
+                context.changed[poll]=0;
+             }
+*/             
 
          }//if context.datachanged==true
          tight_loop_contents();
-
      }//while
-
 }
 

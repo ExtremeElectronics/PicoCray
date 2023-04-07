@@ -5,6 +5,10 @@
 #include <string.h>
 #include <stdlib.h>
 
+//display includes
+#include "ili9341.h"
+#include "gfx.h"
+
 //define the size of the mand
 #define MaxMandX 240
 #define MaxMandY 320
@@ -19,14 +23,42 @@ int questioncnt=0;
 int lastproc=0;
 
 uint16_t answerref[MAXProc][LUMPSIZE];
+uint16_t coord[MAXProc][2];
 
 bool addralloc[MAXProc];
 
-uint16_t results[MaxMandX * MaxMandY];
+uint8_t code=0xaa;
+
+//uint16_t results[MaxMandX * MaxMandY];
+
+//uint16_t *buff = NULL;
+uint16_t buff[LUMPSIZE];
+
+uint16_t mapping[16]={
+    GFX_RGB565(0   ,0   ,0),          //black
+    GFX_RGB565(0xAA,0   ,0),       //red
+    GFX_RGB565(0   ,0xAA,0),       //green
+    GFX_RGB565(0xAA,0x55,0),    //brown
+    GFX_RGB565(0   ,0   ,0xAA),       //blue
+    GFX_RGB565(0xAA,0   ,0xAA),    //Magenta
+    GFX_RGB565(0   ,0xAA,0xAA),    //Cyan
+    GFX_RGB565(0xAA,0xAA,0xAA), //light Grey
+    GFX_RGB565(0x55,0x55,0x55), //grey
+    GFX_RGB565(0xff,0x55,0x55), //bright red
+    GFX_RGB565(0x55,0xff,0x55), //bright green
+    GFX_RGB565(0xff,0xff,0x55), //yellow
+    GFX_RGB565(0   ,0   ,0xff),       //bright blue
+    GFX_RGB565(0xff,0x55,0xff), //bright magenta
+    GFX_RGB565(0x55,0xff,0xff), //bright cyan
+    GFX_RGB565(0xff,0xff,0xff),  //white
+};
+
+
+
 
 int mandx=0,mandy=0;
 
-static void setup_master(){
+static void setup_controller(){
     //SDA
     gpio_init(I2C_SDA_PIN);
     gpio_set_function(I2C_SDA_PIN, GPIO_FUNC_I2C);
@@ -44,6 +76,46 @@ static void setup_master(){
     gpio_set_dir(I2C_Assert,GPIO_IN);
 }
 
+//Display routines
+void init_disp(){
+/*    mapping[0]=GFX_RGB565(66, 30, 15);
+    mapping[1]=GFX_RGB565(25, 7, 26);
+    mapping[2]=GFX_RGB565(9, 1, 47);
+    mapping[3]=GFX_RGB565(4, 4, 73);
+    mapping[4]=GFX_RGB565(0, 7, 100);
+    mapping[5]=GFX_RGB565(12, 44, 138);
+    mapping[6]=GFX_RGB565(24, 82, 177);
+    mapping[7]=GFX_RGB565(57, 125, 209);
+    mapping[8]=GFX_RGB565(134, 181, 229);
+    mapping[9]=GFX_RGB565(211, 236, 248);
+    mapping[10]=GFX_RGB565(241, 233, 191);
+    mapping[11]=GFX_RGB565(248, 201, 95);
+    mapping[12]=GFX_RGB565(255, 170, 0);
+    mapping[13]=GFX_RGB565(204, 128, 0);
+    mapping[14]=GFX_RGB565(153, 87, 0);
+    mapping[15]=GFX_RGB565(106, 52, 3);
+*/
+    LCD_initDisplay();
+    LCD_setRotation(0);
+    GFX_clearScreen();
+    GFX_setCursor(0, 0);
+}
+
+uint16_t do_map(int c){
+   return mapping[c %16];
+}
+
+//void write_lump_to_display(uint16_t x,uint16_t y,uint8_t * data ){
+void write_lump_to_display(uint16_t x,uint16_t y,uint8_t * data ){
+    uint8_t lump;
+    for (lump=0;lump<LUMPSIZE;lump++){
+        buff[lump]=mapping[data[lump] %16];
+    }
+    LCD_WriteBitmap(x, y, LUMPSIZE,1, buff);
+}
+
+// Processor routines.
+
 int GetNextUnallocProc(){
     int a;
     for (a=0;a<MAXProc && addralloc[a]==true;a++){}
@@ -58,7 +130,7 @@ int AllocateProc(uint8_t a){
         addralloc[a]=true;
         r=1;
     }else{
-        printf("Processor allocation failed\n");
+        printf("\n##################### Processor allocation failed\n");
     }
     return r;
 }
@@ -106,8 +178,8 @@ static void check_proc_exists(){
     }
 }
 
-int getnextfreeproc(){
-    if (debug>2)printf("Get Next Free Proc\n");
+int getnextprocwithstatus(uint8_t stat){
+    if (debug>2)printf("Get Next status %i Proc\n",stat);
     int sa;
     int r=-1;
     int tries=0;
@@ -116,7 +188,7 @@ int getnextfreeproc(){
         if (lastproc>MAXProc)lastproc=0;
         if (addralloc[lastproc]==true){
             sa=lastproc+I2C_PROC_LOWEST_ADDR;
-            if (GetProcStatus(sa)==poll_ready){
+            if (GetProcStatus(sa)==stat){
                 r=lastproc;
                 break;
             }
@@ -124,65 +196,19 @@ int getnextfreeproc(){
         tries++;
         if(tries>MAXProc){break;};                
     }
-    if (debug>2)printf("Procfree=%i\n",r);
-    return r;
-}
-
-int getnextdoneproc(){
-    int a,sa;
-    int r=-1;
-    for (a=0;a<MAXProc;a++){
-        if (addralloc[a]==true){
-            sa=a+I2C_PROC_LOWEST_ADDR;
-            if (GetProcStatus(sa)==poll_done){break;}
-        }
-    }
-    if(a<MAXProc){r=a;}
-    if (debug>2) printf("Done Procs %i\n",a);
+    if (debug>2)printf("Proc Stat %i =%i\n",stat,r);
     return r;
 }
 
 void set_poll_status(uint8_t proc,uint8_t status){
-    int c;
     uint8_t rbuf[3];
     rbuf[0]=poll;
     rbuf[1]=status;
     //set poll flag 
-    c= i2c_write_blocking(I2C_MOD, proc+I2C_PROC_LOWEST_ADDR, rbuf, 2, true);
-    if (c!=2){printf("Failed to send status\n");}
+    int c= i2c_write_blocking(I2C_MOD, proc+I2C_PROC_LOWEST_ADDR, rbuf, 2, true);
+    if (c!=2){printf("\n########## Failed to send status\n");}
 }
 
-int XXget_next_question(uint8_t proc){
-    int r=0;
-    int lump;
-    if (mandx+LUMPSIZE>MaxMandX){
-        mandx=0;
-        if (mandy++>MaxMandY){
-            r=1;
-        }
-    }
-    if (r==0){      
-        if (debug>0)printf("MandX:%i,MandY:%i for proc: %i\n",mandx,mandy,proc);
-        for (lump=0;lump<LUMPSIZE;lump++){
-            mandx++;
-            if(debug>3) printf("lump:%i ",lump);
-            dchar.dx[lump]=(double)((double)(mandx+lump)-MandXOffset/2)/MaxMandX*3;
-            dchar.dy[lump]=(double)(mandy-MandYOffset/2)/MaxMandY*3;
-            if(debug>3) printf("QC %i",questioncnt);
-            if (debug>3) printf("%i %i dx:%f,%f \n",lump,questioncnt,dchar.dx[lump],dchar.dy[lump]); 
-            answerref[proc][lump]=questioncnt;
-            if(MaxMandX * MaxMandY<questioncnt){
-               printf("\nIT's all gone horribly wrong! \n %i %i %i %i\n\n",mandx,mandy,lump,questioncnt);
-               while(1){
-                 sleep_ms(100);
-               }
-            }   
-            questioncnt++;
-       }
-   }
-   if (debug>0)printf("return from get\n");
-   return r;
-}
 
 int next_mand(){
     int r=0;
@@ -198,49 +224,51 @@ int next_mand(){
     return r;
 }
 
-
 int get_next_question(uint8_t proc){
     int r=0;
     int lump=0;
-    int q;
-        printf("\n");
-        if (debug>0)printf("MandX:%i,MandY:%i for proc: %i\n",mandx,mandy,proc);
-        while (lump<LUMPSIZE && r==0){
-            dchar.dx[lump]=(double)(mandx-MandXOffset)/MaxMandX*5;
-            dchar.dy[lump]=(double)(mandy-MandYOffset)/MaxMandY*3;
-            if (debug>3) q=mandelbrot(dchar.dx[lump],dchar.dy[lump]);
-            answerref[proc][lump]=questioncnt;
-            if (debug>3) printf("%i %i dx:%f,%f q=%i \n",lump,questioncnt,dchar.dx[lump],dchar.dy[lump],q); 
-  
-            if(MaxMandX * MaxMandY<questioncnt){
-               printf("\nIT's all gone horribly wrong! \n %i %i %i\n\n",mandx,mandy,questioncnt);
-               while(1){
-                 sleep_ms(100);
-               }//while
-            }  //if
-            
-//             if (debug>3)printf("%i %i %i %i %i\n",mandx,mandy,lump,questioncnt,r); 
-            r=next_mand();
-            lump++;
+    //printf("\n");
+    if (debug>0)printf("MandX:%i,MandY:%i for proc: %i\n",mandx,mandy,proc);
+    coord[proc][0]=mandx;
+    coord[proc][1]=mandy;
+    dchar.dy=(double)(mandy-MandYOffset)/MaxMandY*3; //only send y once ASSUMES Y WONT CHANGE DURING LUMP
+    while (lump<LUMPSIZE && r==0){
+        dchar.dx[lump]=(double)(mandx-MandXOffset)/MaxMandX*3;  //was 5
+        //if (debug>3) q=mandelbrot(dchar.dx[lump],dchar.dy[lump]);
+        answerref[proc][lump]=questioncnt;
+        r=next_mand();
+        lump++;
         }//while
    return r;
 }
 
 int send_questions_to_proc(uint8_t proc){
-    uint8_t rbuf[QUESTIONSIZE+1];
-    rbuf[0]=quest; //mem address
-    int c;
-    for(int a=0;a<QUESTIONSIZE;a++){
-        rbuf[a+1]=dchar.arr[a];
-    }
+    uint8_t rbuf[QUESTIONSIZE+2];
+    code++;
+    if (code==0)code++;
+    dchar.code=code;
+    uint8_t ok=0;
+    uint8_t addr=proc+I2C_PROC_LOWEST_ADDR;
+    int tries=0;
+    rbuf[0]=quest; //mem address dor data
+    for(int a=0;a<QUESTIONSIZE;a++)rbuf[a+1]=dchar.arr[a];
+    rbuf[QUESTIONSIZE+1]=poll_go; //set poll to go.
     if (debug>2) printf("Send to Proc:%i \n",proc);
     if (debug>5) {
         Show_data(0,QUESTIONSIZE,dchar.arr);
         printf("\n");
-    }
-    c=i2c_write_blocking(I2C_MOD, proc+I2C_PROC_LOWEST_ADDR, rbuf, QUESTIONSIZE+1, true);
-    if(c!=QUESTIONSIZE+1)printf("Failed to send question to proc %i\n",proc);
-    return c==QUESTIONSIZE+1;
+    }    
+
+    while(ok==0 && tries<3){
+        tries++;
+        ok=1;
+        if(i2c_write_blocking(I2C_MOD, addr, rbuf, QUESTIONSIZE+2, true)!=QUESTIONSIZE+2){
+            printf("\n####### Failed to send question to proc %i\n",proc);
+            ok=0;
+        }
+    }//while
+
+    return ok;
 }
 
 int do_answers(uint8_t proc){
@@ -258,17 +286,12 @@ int do_answers(uint8_t proc){
          if (debug>5){
              Show_data(0,ANSWERSIZE,ichar.arr);
              printf("\n");
-         }    
-         for(int lump=0;lump<LUMPSIZE;lump++){
-             //get pointer into results from the proc and lump via answerref
-    //         if (debug>2) printf(" Results %i %i %i \n",proc,lump,answerref[proc][lump]);
-             results[ answerref[proc][lump] ]=ichar.i[lump];
-             if (debug>2) printf("%i ",ichar.i[lump]);                  
          }
+         write_lump_to_display(coord[proc][0],coord[proc][1],ichar.i );    
          r=1;
          if (debug>1) puts("= Answer *****\n");  
      }else{
-         printf("Failed to get answers from proc %i\n",proc);
+         printf("\n############### Failed to get answers from proc %i\n",proc);
      }
      return r; 
 }
@@ -285,30 +308,28 @@ void check_for_unallocated_processors(){
             sa[2]=0;
             int c=i2c_write_blocking(I2C_MOD, I2C_DEFAULT_ADDRESS, sa, 2, true);
             if(c==2){
-                printf("\n############### Unallocated Proc/ADDR Change to %02X[%02X] ################\n\n",np,sa[1]);
+                printf("\n*************** Unallocated Proc/ADDR Change to %02X[%02X] *****************\n\n",np,sa[1]);
                 AllocateProc(np);
             }else{
-                printf("\n############### Unallocated Proc/ADDR Change to %02X[%02X] FAILED  ################\n\n",np,sa[1]);
+                printf("\n############## Unallocated Proc/ADDR Change to %02X[%02X] FAILED  ################\n\n",np,sa[1]);
             }
             sleep_ms(300); //and wait for reply.
         }else{
-          printf("Out of spare Procs\n");
+          printf("\n############# Out of spare Procs\n");
         }
    }//if proc on addres     
 
 
 }
 
-void do_master(char dbg){
+void do_controller(char dbg){
     mandx=0,mandy=0;
-    MandXOffset=MaxMandX/2;
+    MandXOffset=MaxMandX/1.5;
     MandYOffset=MaxMandY/2;
 
     questioncnt=0;
     debug=dbg;
     puts("\nI2C Controller Start\n");
-
-//    setup_master();
 
     int proc;
 
@@ -321,45 +342,53 @@ void do_master(char dbg){
     while(go>0){
         //check for un allocated Processors        
         if (gpio_get(I2C_Assert)==1){
-           check_for_unallocated_processors();
+            check_for_unallocated_processors();
         }//if assert
 
         //check free processors 
         if (debug>2)puts("Check Free Procs");
-        proc=getnextfreeproc(); //get addess of free proc
+//        proc=getnextfreeproc(); //get addess of free proc
+        proc=getnextprocwithstatus(poll_ready);
         if (proc>=0 && go==2){ 
             if (debug>2) printf("Proc %i free add process\n",proc);
             if (get_next_question(proc)==0){
+//                set_poll_status(proc, poll_wait);
                 if (debug>2) printf("SendQuestion process\n");
-                //send 2*lump floats to var
-                send_questions_to_proc(proc);            
-                set_poll_status( proc,poll_go);
+                //send 2*lump floats to var + poll=poll_go
+                if (send_questions_to_proc(proc)==0){
+                    printf("\n###Send failed %i\n",proc);                 
+                }            
+                //after sending questions set proc to go. not needed as tagged on to questions now.
+//                set_poll_status( proc,poll_go);
             }else{
-              printf("\n\nFinished");
+              printf("\n\n*********** Finished ***********");
               //set finished - wait for all done
               go=1;//no further questions wait till all answers.
             }
         }else{
-          if (debug>2) puts("No free procs");
+            putchar('~');
+            if (debug>2) puts("No free procs");
         }
 
         //check for procs that have done.
         if (debug>2)puts("Check procs done" );
-        proc=getnextdoneproc();
+//        proc=getnextdoneproc();
+        proc=getnextprocwithstatus(poll_done);
         if (proc>=0){
-           if (debug>2)printf("read answer from proc %i\n",proc);
-           if (do_answers(proc)){             
-               set_poll_status( proc,poll_ready);
-           }else{
-               printf("Read answer failed\n");  
-           }    
+            if (debug>2)printf("read answer from proc %i\n",proc);
+            if (do_answers(proc)){             
+                //after getting answers set proc back to ready.
+                set_poll_status( proc,poll_ready);
+            }else{
+                printf("\n############## Read answer failed\n");  
+            }    
         }else{
             if (debug>2)printf("No done procs\n");
-            putchar('.');
+            putchar('?');
             //if finished set
             if (go==1){
                 go=0; //have all answers stop
-                puts("\nComplete");
+                puts("\n************ Complete **************");
             }
         }  
         tight_loop_contents();

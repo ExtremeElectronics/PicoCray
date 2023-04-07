@@ -8,8 +8,8 @@
 #include <hardware/watchdog.h>
 
 //static const uint I2C_BAUDRATE = 100000; // 100 kHz
-static const uint I2C_BAUDRATE = 400000; // 400 kHz
-//static const uint I2C_BAUDRATE = 1000000; // 1000 kHz
+//static const uint I2C_BAUDRATE = 400000; // 400 kHz
+static const uint I2C_BAUDRATE =  2000000; // 1000 kHz
 
 // For this example, we run both the master and slave from the same board.
 // You'll need to wire pin GP4 to GP6 (SDA), and pin GP5 to GP7 (SCL).
@@ -29,25 +29,56 @@ static uint i2c_address = I2C_DEFAULT_ADDRESS; //default I2C address
 
 #define MAXProc 16//max number of processors
 
+
+//lumpsize number of questions/answers sent at once
+#define LUMPSIZE 24
+//#define QUESTIONSIZE LUMPSIZE*2*8 //LUMPSIZE 8 byte doubles x 2 (x *Y)
+#define QUESTIONSIZE (LUMPSIZE+1)*8+1 //LUMPSIZE 8 byte doubles(x) + 8 byte double (y) +code
+//#define ANSWERSIZE LUMPSIZE*2 //LUMPSIZE uint16's 
+#define ANSWERSIZE LUMPSIZE*1 //LUMPSIZE uint16's 
+
+//questions location in proc I2C memory
+#define quest 0x10 
+
+//answers location
+#define ans quest + QUESTIONSIZE +1 //LUMPSIZE uint16 - after poll.
+
+#if (quest+QUESTIONSIZE>255)
+  #error Variables too big for i2c ram
+#endif
+
 //register locations
 
 //master sets slave address
-#define cmd_sl_addr 0x0f //sets new processor address
+#define cmd_sl_addr 0x0c //sets new processor address
 #define cmd_debug 0x0d //puts sets debug in processors in debug
 
 //processor state
-#define poll 0x0a 
+ #define poll quest + QUESTIONSIZE //immediatly after questions.
+
 //state definitions
-#define poll_ready 1
-#define poll_go 2
-#define poll_busy 3
-#define poll_done 4
+#define poll_notset 0 //ready and free
+#define poll_ready 1 //ready and free
+#define poll_go 2 //start computation
+#define poll_busy 3 //doing computation
+#define poll_done 4 //finished computation
+#define poll_wait 5 // allocated, but not yet sent questions. 
+#define poll_waiting 6 // aknoledge wait
 #define poll_reset 0xff
 
 void enumerate_status(int stat){
    switch(stat) {
+     case poll_notset:
+       puts("Not Set");
+       break;
      case poll_ready:
        puts("Ready");
+       break;
+     case poll_waiting:
+       puts("Waiting");
+       break;
+     case poll_wait:
+       puts("Wait");
        break;
      case poll_go:
        puts("Go");
@@ -62,27 +93,13 @@ void enumerate_status(int stat){
        puts("Reset");
        break;    
      default:
-       printf("Undefined %i",stat);     
+       printf("Undefined %i\n",stat);     
   }
 }
 
-//lumpsize number of questions/answers sent at once
-#define LUMPSIZE 10
-#define QUESTIONSIZE LUMPSIZE*2*8 //LUMPSIZE 8 byte doubles x 2
-#define ANSWERSIZE LUMPSIZE*2 //LUMPSIZE uint16's 
-
-//questions location in proc I2C memory
-#define quest 0x10 
-
-//answers location
-#define ans quest + QUESTIONSIZE //LUMPSIZE uint16
-
-#if (quest+QUESTIONSIZE>255)
-  #error Variables too big for i2c ram
-#endif
 
 //shared I2Cram structure
-static struct
+volatile static struct
 {
     uint8_t mem[256];
     uint8_t changed[256];
@@ -95,7 +112,8 @@ static struct
 //Answer Structure
 union { 
     uint8_t arr[ANSWERSIZE]; //LUMPSIZE uint16's  
-    uint16_t i[LUMPSIZE];
+    uint8_t i[LUMPSIZE];
+//    uint16_t i[LUMPSIZE];
      
 }ichar;
 
@@ -104,7 +122,9 @@ union {
     uint8_t arr[QUESTIONSIZE]; //20x doubles
     struct{
         double dx[LUMPSIZE];
-        double dy[LUMPSIZE];
+//        double dy[LUMPSIZE];
+        double dy;
+        uint8_t code;
     };    
 } dchar;
 
@@ -134,15 +154,31 @@ bool MSselect(){
 
 void Show_data(int s, int e,uint8_t *  mem ){
      int c=0;
+     if (s==0){
+         printf("\n quest:%02X[%02X], poll:%02X[1], ans:%02X[%02X] \n",quest,QUESTIONSIZE,poll,ans,ANSWERSIZE);
+         printf("cmd_sl:%02X, cmd_debug:%02X \n",cmd_sl_addr ,cmd_debug);
+     }
+     printf("\n0000 ");
      for (int m=s; m<e; m++){
+         if (s==0){
+            if (m>=0 && m<quest) printf("\033[33m"); //Yellow
+            if (m>=quest && m<poll) printf("\033[36m"); //blue
+            if (m==poll)printf("\033[31m");//red
+            if (m>=ans && m<ans+ANSWERSIZE) printf("\033[35m"); //magenta
+            if (m>=ans+ANSWERSIZE) printf("\033[37m"); //white
+            if (m==cmd_sl_addr)printf("\033[31m");//red
+            if (m==cmd_debug)printf("\033[31m");//red
+         
+         }
          printf("%02X ",mem[m]) ;
          if(c==7){printf("- ");}
          if(c++>14){
              c=0;
-             puts("");    
+             printf("\n\033[37m%03X0 ",m/16+1);    
          }    
 
      }//for
+     printf("\033[37m");
 }
 
 int mandelbrot(double r,double  i) {
@@ -159,3 +195,4 @@ int mandelbrot(double r,double  i) {
     }
     return steps;
 }
+

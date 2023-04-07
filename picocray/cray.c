@@ -27,46 +27,61 @@ int main() {
     printf("Lump %02X Questions %02X[%02X] - Answers %02X[%02X]\n",LUMPSIZE,quest,QUESTIONSIZE,ans,ANSWERSIZE);
     
     if (MSselect()){
+        // we are a processor
         do_proc();
     }else{
+       //we are a controller
         char s[3];
         debug=1;
-        setup_master();
+        init_disp();
+        setup_controller();
         while(1){
+//            puts("\n\nController\n (t)Statuses, (s)Scan, (p)dump Addr 0x20, (b)dump addr 0x17 ");
+//            puts(" (c)Controller, (d)Debug, (r)Results (u) check unallocated (x) Test Display \n(z)res to disp\n");
             puts("\n\nController\n (t)Statuses, (s)Scan, (p)dump Addr 0x20, (b)dump addr 0x17 ");
-            puts(" (c)Controller, (d)Debug, (r)Results (u) check unallocated");
+            puts(" (r)Run, (d)Debug, (u) check unallocated (c) Clear Display (x) Test Display\n");
+            puts(" (y) Reset Proc Status \n");
             scanf("%1s", s);
             //if(s[0]=='a'){
             //    do_assert_test();
             //}
             if(s[0]=='t'){
                 debug=0; 
-                do_master_statuses();
+                do_proc_statuses();
             }
             if(s[0]=='s'){
-                do_master_scan();
+                do_I2C_scan();
             }
             if(s[0]=='p'){
-                do_master_dump(0x20);
+                do_I2C_dump(0x20);
             }
             if(s[0]=='b'){
-                do_master_dump(0x17);
+                do_I2C_dump(0x17);
             }
             if(s[0]=='d'){
                 // run controller with debug
-                do_master(5);
-            }
-            if(s[0]=='c'){
-                // run controller no debug
-                do_master(0);
+                do_controller(2);
             }
             if(s[0]=='r'){
-                do_results();
+                // run controller no debug
+                do_controller(0);
             }
+//            if(s[0]=='r'){
+//                do_results();
+//            }
             if(s[0]=='u'){
-                setup_master();
+//                setup_controller();
                 do_assert_test();
                 check_for_unallocated_processors();
+            }
+            if(s[0]=='x'){
+                test_display();
+            }
+            if(s[0]=='c'){
+                GFX_clearScreen();
+            }
+            if(s[0]=='y'){
+                resetprocstatus();
             }
             sleep_ms(10);
         }
