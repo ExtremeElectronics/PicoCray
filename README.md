@@ -47,6 +47,9 @@ The Processor runs its code (currently a mandlebot running 10 times for 10 XY "Q
 The Controller polls the Processors status for Done flags via I2C, and fetches the Answers via I2C as a uint8_t array converted to uint16_t's and stored into results pointed to by the processor it was assigned to. The Controller then sets the Prosessors Status flag to READY
 This continues until all of the Questions have been asked, and all of the Processors are showing READY. 
 
+### Display 
+Outputs the resultant Mandle to 240x320 display using the ili9341
+
 # Warning
 This code is all Proof of principle. Much of it works. Some of it gives reasonable results. Does it work, not for all cases. Does it give a good mandlebrot output. Well it did, but I've changed many many things since I last actually looked at its output. 
 Basically if you are going to use this code to pilot a rocket, you will end up smashing into a planet at mach something rediculous. 
