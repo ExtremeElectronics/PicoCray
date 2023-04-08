@@ -3,6 +3,9 @@ BSD 2-Clause License
 
 Copyright (c) 2012 Adafruit Industries.  All rights reserved.
 
+Sourced from https://github.com/tvlad1234/pico-displayExamples/blob/main/ili9341Test/main.c
+
+ based on Adafruit ILI9341 Arduino Library
 
 
 Redistribution and use in source and binary forms, with or without
