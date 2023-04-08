@@ -1,7 +1,7 @@
 BSD 2-Clause License
 
 
-Copyright (c) Extreme Electronics. 
+Copyright (c) 2023 - Extreme Electronics. 
 
 ILI9341 an GFX librarys
 
