@@ -1,7 +1,9 @@
 BSD 2-Clause License
 
 
-Copyright (c) 2012 Adafruit Industries.  All rights reserved.
+Copyright (c) Extreme Electronics. 
+
+ILI9341 an GFX librarys
 
 Sourced from https://github.com/tvlad1234/pico-displayExamples/blob/main/ili9341Test/main.c
 
