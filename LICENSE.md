@@ -4,11 +4,9 @@ BSD 2-Clause License
 Copyright (c) 2023 - Extreme Electronics. 
 
 ILI9341 an GFX librarys
-
 Sourced from https://github.com/tvlad1234/pico-displayExamples/blob/main/ili9341Test/main.c
-
- based on Adafruit ILI9341 Arduino Library
-
+based on Adafruit ILI9341 Arduino Library
+Copyright (c) 2012 Adafruit Industries.  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
