@@ -1,6 +1,9 @@
 BSD 2-Clause License
 
-Copyright (c) 2023, Extreme Electronics
+
+Copyright (c) 2012 Adafruit Industries.  All rights reserved.
+
+
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
