@@ -7,7 +7,16 @@ pico_add_extra_outputs(cray)
 
 target_compile_options(cray PRIVATE -Wall)
 
-target_link_libraries(cray i2c_slave pico_stdlib hardware_adc)
+target_link_libraries(cray 
+    i2c_slave 
+    pico_stdlib 
+    hardware_adc 
+    ili9341
+    gfx 
+    hardware_dma	
+    hardware_irq
+    pico_multicore
+)
 
 
 # enable usb output, disable uart output
