@@ -107,6 +107,7 @@ volatile static struct
     bool mem_address_written;
     bool datachanged;
     bool asserting;
+    bool data_received;
 } context;
 
 //Answer Structure

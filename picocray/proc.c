@@ -30,6 +30,7 @@ static void i2c_slave_handler(i2c_inst_t *i2c, i2c_slave_event_t event) {
         break;
     case I2C_SLAVE_FINISH: // master has signalled Stop / Restart
         context.mem_address_written = false;
+        if ( context.datachanged==true) context.data_received=true;
         break;
     default:
         break;
@@ -98,7 +99,7 @@ int TestProcAssert(){
 }
 
 void do_proc(){
-     int dc=0;
+//     int dc=0;
      puts("\nI2C Slave selected\n");
      
      sleep_ms(1000+irand(5000)); //random delay starting proc.
@@ -124,15 +125,14 @@ void do_proc(){
      printf("\n Slave loop - Assert %i\n",TestProcAssert());
      printf("Listning on %02X\n",I2C_DEFAULT_ADDRESS);
      while(1){
-         sleep_us(100);
-
-         if(dc++>10000){
+//         sleep_us(100);
+//         if(dc++>10000){
 //           putchar('.');
-           dc=0;
-         }
-         if(context.datachanged==true){ 
+//           dc=0;
+//         }
+         if(context.datachanged==true && context.data_received==true){ 
              context.datachanged=false;
-
+              context.data_received=false;
 //             if(context.mem[cmd_debug]>0) printf("Poll status %i[%i] \n",context.mem[poll],context.changed[poll]);
              // address change request 
              if(context.changed[cmd_sl_addr ]){
@@ -155,17 +155,19 @@ void do_proc(){
                          //signal ready
                          puts("Poll Ready");
                          context.mem[poll]=poll_ready;
+                         //disconnect USB
+                         puts("Disconnecting USB\n");
+
                          //Show_data(0,128);
-                    }
+                     }
                  }else{
                       puts("Not Changing Address, not got assert");
                  }//if else
              }//if context ... cmd_sl_addr 
-            
              //status changed to go
              if(context.changed[poll]){
                  context.changed[poll]=false;
-
+                 
                  if( context.mem[poll]==poll_go){
                      gpio_put(LED_PIN,1);
 //                     puts("");
@@ -188,20 +190,13 @@ void do_proc(){
                      context.mem[poll]=poll_done;
                      context.changed[poll]=0;
                  }    //poll go
-
+                 
                  if(context.mem[poll]==poll_wait){
                      context.mem[poll]=poll_waiting;
                      if(debug)printf("Wait\n");
                  } //poll wait
 
              } //if(context.changed[poll]
-/*             
-             if(context.changed[poll] && context.mem[poll]==poll_wait){
-                if(debug)printf("Wait\n");
-                context.changed[poll]=0;
-             }
-*/             
-
          }//if context.datachanged==true
          tight_loop_contents();
      }//while

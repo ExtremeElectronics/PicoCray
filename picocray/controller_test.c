@@ -2,7 +2,7 @@ int proc_dump(char addr,char MemAddress,int msg_len,uint8_t * buf){
     int r=0;
     if (debug>2)printf("Dump contents of proc address %02X\n",addr);
     buf[0]=MemAddress;
-    int count = i2c_write_blocking(I2C_MOD, addr, buf, 1, true);
+    int count = i2c_write_blocking(I2C_MOD, addr, buf, 1, false);
     if(count==0){
          printf("Cant Read from proc address %02X, Mem %i\n",addr,MemAddress);
          r=-1;
@@ -140,5 +140,40 @@ void resetprocstatus(){
           printf("\nPoll status reset %i ",p);
    }
    printf("\n");
+}
+
+
+void Test_XPT_2046(){
+    printf("Test/Calibrate Touch\n\n");
+
+    XPT_2046_Init();
+
+    uint16_t x,y,rx,ry,z;
+
+    while(1){
+      z=XPT_2046_GetRawZ();
+      printf("%i \n",z);
+//       if (gpio_get(XPT_2046_IRQ)==0){
+      if(z>500){  
+         GFX_clearScreen();
+
+      //   printf(" IRQ High ");
+//       }else{
+      //   printf(" IRQ Low ");
+
+         x=XPT_2046_GetX();
+         rx=XPT_2046_GetRawX();
+         y=XPT_2046_GetY() ;
+         ry=XPT_2046_GetRawY();
+         
+         z=XPT_2046_GetRawZ();
+         
+         printf(" X:%i[%i] Y:%i[%i] Z:%i \n",x,rx,y,ry,z );
+         GFX_fillRect(MaxMandX-x,MaxMandY-y,10,10,GFX_RGB565(211, 236, 248));
+         sleep_ms(100);
+       }
+       sleep_ms(10);
+    }
+
 }
 

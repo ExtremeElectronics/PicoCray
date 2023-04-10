@@ -5,6 +5,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include "common.h"
+#include "touch.c"
 #include "controller.c"
 #include "proc.c"
 #include "controller_test.c"
@@ -40,7 +41,7 @@ int main() {
 //            puts(" (c)Controller, (d)Debug, (r)Results (u) check unallocated (x) Test Display \n(z)res to disp\n");
             puts("\n\nController\n (t)Statuses, (s)Scan, (p)dump Addr 0x20, (b)dump addr 0x17 ");
             puts(" (r)Run, (d)Debug, (u) check unallocated (c) Clear Display (x) Test Display\n");
-            puts(" (y) Reset Proc Status \n");
+            puts(" (y) Reset Proc Status, (@) Touch Calib/Test \n");
             scanf("%1s", s);
             //if(s[0]=='a'){
             //    do_assert_test();
@@ -63,9 +64,27 @@ int main() {
                 do_controller(2);
             }
             if(s[0]=='r'){
-                // run controller no debug
+                // run controller no debug no touch
+                //position
+                MandXOffset=MaxMandX/1.5;
+                MandYOffset=MaxMandY/2;
+                //zoom
+                zoom=3;
+
                 do_controller(0);
             }
+            if(s[0]=='z'){
+                // run controller with touch
+                //position
+                MandXOffset=MaxMandX/1.5;
+                MandYOffset=MaxMandY/2;
+                //zoom
+                zoom=3;
+                do_touch_loop();
+            }
+
+            
+            
 //            if(s[0]=='r'){
 //                do_results();
 //            }
@@ -83,6 +102,11 @@ int main() {
             if(s[0]=='y'){
                 resetprocstatus();
             }
+            
+            if(s[0]=='@'){
+               Test_XPT_2046();
+            }
+            
             sleep_ms(10);
         }
 //        do_master(0);

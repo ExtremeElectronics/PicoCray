@@ -17,6 +17,7 @@
 
 int MandYOffset=0;
 int MandXOffset=0;
+double zoom=3;
 
 char debug=0;
 int questioncnt=0;
@@ -28,6 +29,8 @@ uint16_t coord[MAXProc][2];
 bool addralloc[MAXProc];
 
 uint8_t code=0xaa;
+
+int mandx=0,mandy=0;
 
 //uint16_t results[MaxMandX * MaxMandY];
 
@@ -52,11 +55,6 @@ uint16_t mapping[16]={
     GFX_RGB565(0x55,0xff,0xff), //bright cyan
     GFX_RGB565(0xff,0xff,0xff),  //white
 };
-
-
-
-
-int mandx=0,mandy=0;
 
 static void setup_controller(){
     //SDA
@@ -98,7 +96,6 @@ void init_disp(){
     LCD_initDisplay();
     LCD_setRotation(0);
     GFX_clearScreen();
-    GFX_setCursor(0, 0);
 }
 
 uint16_t do_map(int c){
@@ -150,7 +147,7 @@ static int GetProcStatus(uint8_t addr){
     buf[0]=poll;
     buf[1]=0;
     buf[2]=0;
-    count = i2c_write_blocking(I2C_MOD, addr, buf, 1, true);
+    count = i2c_write_blocking(I2C_MOD, addr, buf, 1, false);
     if (count==1){
         count = i2c_read_blocking(I2C_MOD, addr, buf, 1, true); 
         if (count==1){
@@ -231,9 +228,9 @@ int get_next_question(uint8_t proc){
     if (debug>0)printf("MandX:%i,MandY:%i for proc: %i\n",mandx,mandy,proc);
     coord[proc][0]=mandx;
     coord[proc][1]=mandy;
-    dchar.dy=(double)(mandy-MandYOffset)/MaxMandY*3; //only send y once ASSUMES Y WONT CHANGE DURING LUMP
+    dchar.dy=(double)(mandy-MandYOffset)/MaxMandY*zoom; //only send y once ASSUMES Y WONT CHANGE DURING LUMP
     while (lump<LUMPSIZE && r==0){
-        dchar.dx[lump]=(double)(mandx-MandXOffset)/MaxMandX*3;  //was 5
+        dchar.dx[lump]=(double)(mandx-MandXOffset)/MaxMandX*zoom; 
         //if (debug>3) q=mandelbrot(dchar.dx[lump],dchar.dy[lump]);
         answerref[proc][lump]=questioncnt;
         r=next_mand();
@@ -277,7 +274,7 @@ int do_answers(uint8_t proc){
      int c;
      int r=0;
      if (debug>3) printf("Getting Answers from Proc %i\n",proc);
-     c=i2c_write_blocking(I2C_MOD, proc+I2C_PROC_LOWEST_ADDR, rbuf, 1, true);
+     c=i2c_write_blocking(I2C_MOD, proc+I2C_PROC_LOWEST_ADDR, rbuf, 1, false);
      c= i2c_read_blocking(I2C_MOD, proc+I2C_PROC_LOWEST_ADDR, rbuf, ANSWERSIZE, true);
      if (c==ANSWERSIZE){
          for(int a=0;a<ANSWERSIZE;a++){
@@ -322,10 +319,41 @@ void check_for_unallocated_processors(){
 
 }
 
+
 void do_controller(char dbg){
     mandx=0,mandy=0;
+
+/*
+//position
     MandXOffset=MaxMandX/1.5;
     MandYOffset=MaxMandY/2;
+//zoom
+    zoom=3;
+
+//position
+    MandXOffset=MaxMandX/0.5;
+    MandYOffset=MaxMandY/2;
+//zoom
+    zoom=0.5;
+
+//position
+    MandXOffset=MaxMandX/0.1;
+    MandYOffset=MaxMandY/2;
+//zoom
+    zoom=0.2;
+
+//position
+    MandXOffset=MaxMandX/0.11;
+    MandYOffset=MaxMandY/2;
+//zoom
+    zoom=0.18;//0.15
+
+//position
+    MandXOffset=MaxMandX/0.102;
+    MandYOffset=MaxMandY/2;
+//zoom
+    zoom=0.15;
+*/    
 
     questioncnt=0;
     debug=dbg;
@@ -395,3 +423,57 @@ void do_controller(char dbg){
      }//while
 }
 
+
+int wait_for_touch(){
+    printf("Wait for Touch\n");
+
+    uint16_t x,y,windowwidth,windowheight;
+    int touched=0;
+    while(touched==0){
+       // if touched.
+       if (XPT_2046_GetRawZ()>500){
+       //if (gpio_get(XPT_2046_IRQ)==0){
+
+         x=XPT_2046_GetX();
+         y=XPT_2046_GetY();
+
+         printf("Touch X:%i Y:%i \n",x,y );
+         touched=1;
+       }
+    }
+
+    printf("Before: MandXoff:%i, MandYoff:%i, Zoom: %f \n",MandXOffset,MandYOffset,zoom);
+
+    // calculate new mandle position and zoom
+
+    zoom=zoom/1.8;
+    
+    windowwidth=zoom*MaxMandX;
+    MandXOffset=MandXOffset-0.5*windowwidth+(windowwidth*x/MaxMandX);
+    
+    windowheight=zoom*MaxMandY;
+    MandYOffset=MandYOffset-0.5*windowheight+(windowheight*y/MaxMandY);
+
+    printf("After: MandXoff:%i, MandYoff:%i, Zoom: %f \n",MandXOffset,MandYOffset,zoom);
+    
+    GFX_fillRect(MaxMandX-x,MaxMandY-y,10,10,0);
+    
+    return 1;
+}
+
+void do_touch_loop(){
+    XPT_2046_Init();
+    
+    int go=1;
+//position
+    MandXOffset=MaxMandX/1.5;
+    MandYOffset=MaxMandY/2;
+//zoom
+    zoom=3;
+   
+    while(go==1){
+        do_controller(0);
+        go=wait_for_touch();        
+    }
+
+}
