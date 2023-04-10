@@ -9,13 +9,21 @@ Make the I2C bus as short as possible and you will need one pair of 4k7 Ohm resi
 The Code is the same for all Pico's, to specify a controller add a wire from GPIO 22 to GND 
 There must be (only) one controller in each cluster.
 
+## Display
+The Resulting Mandle is shown on a TJCTM24024-SPI 2.4 inch Touch 320x240 LCD display 
+Wiring details are in the Connections.txt
+
+## Touch 
+A simple touch driver os provided to select the part of the mandle to zoom into
+
 ## Programming. 
 Initially dump the uf2 file directly onto the picos USB drive as normal. 
 As long as the code is running correctly you can use the USB serial speed change to set the pico into program mode. 
 
 ## Code
-Currently the picos will run a Mandlebrot calculation for 10 double x,y co-ordinates and return 10 integers of the count for each
-there are unions in common.h to structure the data sent/received. 
+The calculations are sent as "Lumps" each lump is (currently) 24 calculations
+Currently the picos will run multiple Mandlebrot calculations for LUMP(number) double x and a single y co-ordinate and return LUMP integers of the itteration count, for each.
+There are unions in common.h to structure the data sent/received. 
 Data is sent and received as arrays of uint8_t by the controller to the Processors (proc's) via I2C
 
 ## Master/Slave Controller/Processor
@@ -43,7 +51,7 @@ On changing it's address the Processor releases the Assert line and waits for "q
 The code to run is compiled on all Processors. 
 The Controller will find the first free Processor, and send it a "Question" of variables. These variables are set in a question union, and sent as the unions  associated array of uint8_t via I2C to the processor. The Controller records which questions have been sent to the Processor, so it can put the answers in to order when they are received.
 The Go status flag is set by the Controller on the processor via I2C.
-The Processor runs its code (currently a mandlebot running 10 times for 10 XY "Questions" ). The processor stores the 10 answers  (an array unint16_t) as an coexisting array of uint8_t in to the I2C slaves accessable memory, and sets the DONE flag in the Processors Status byte. 
+The Processor runs its code (currently a mandlebot running LUMP times for LUMP XY "Questions" ). The processor stores the LUMP answers  (an array unint16_t) as an coexisting array of uint8_t in to the I2C slaves accessable memory, and sets the DONE flag in the Processors Status byte. 
 The Controller polls the Processors status for Done flags via I2C, and fetches the Answers via I2C as a uint8_t array converted to uint16_t's and stored into results pointed to by the processor it was assigned to. The Controller then sets the Prosessors Status flag to READY
 This continues until all of the Questions have been asked, and all of the Processors are showing READY. 
 
@@ -51,7 +59,7 @@ This continues until all of the Questions have been asked, and all of the Proces
 Outputs the resultant Mandle to 240x320 display using the ili9341
 
 # Warning
-This code is all Proof of principle. Much of it works. Some of it gives reasonable results. Does it work, not for all cases. Does it give a good mandlebrot output. Well it did, but I've changed many many things since I last actually looked at its output. 
+This code is all Proof of principle. Much of it works. Some of it gives reasonable results. Does it work, not for all cases. Does it give a good mandlebrot output. Well Yes, kind of, I'm getting missing LUMPS of answers, these bugs are random and currently evading capture. I'm setting traps. 
 Basically if you are going to use this code to pilot a rocket, you will end up smashing into a planet at mach something rediculous. 
 You have been warned. 
 
