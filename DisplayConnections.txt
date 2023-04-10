@@ -16,3 +16,10 @@ T_DIN	    	GP15
 T_DO		GP8
 T_IRQ	    	GP9
 
+Pico - Pico Connections (all in parallel)
+============
+I2C_SDA_PIN  10 // SDA pin
+I2C_SCL_PIN  11 // SCL pin
+I2C_Assert 13 // pico can only be promoted to a process, if locally driven high, prevents fighting for i2c addresse
+I2C_MS_SELECT 22 // take pin low to become a master
+
