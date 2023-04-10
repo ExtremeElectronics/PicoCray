@@ -1,0 +1,18 @@
+TJCTM24024	Pico
+---------------------
+VCC		3V3
+GND		GND
+CS		GP5
+RESET		GP6
+DC		GP7
+SDI(MOSI)	GP3
+SCK		GP2
+LED		3V3
+SDO(MISO)	GP4
+ 
+T_CLK	    	GP14
+T_CS		3v3
+T_DIN	    	GP15
+T_DO		GP8
+T_IRQ	    	GP9
+
