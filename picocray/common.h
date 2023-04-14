@@ -19,6 +19,13 @@ static const uint I2C_BAUDRATE =  2000000; // 1000 kHz
 #define I2C_Assert 13 // pico can only be promoted to a process if locally driven high, stops fighting for i2c addresses
 #define I2C_MS_SELECT 22 // take pin low to become a master
 
+//buttons
+#define Start_but 18
+#define Back_but 19
+#define Led1 16
+#define Led2 17
+
+
 #define LED_PIN 25 //Busy Led 
 
 //start of processor addresses
@@ -65,6 +72,30 @@ static uint i2c_address = I2C_DEFAULT_ADDRESS; //default I2C address
 #define poll_wait 5 // allocated, but not yet sent questions. 
 #define poll_waiting 6 // aknoledge wait
 #define poll_reset 0xff
+
+void init_leds(){
+
+    gpio_init(Led1);
+    gpio_set_dir(Led1,GPIO_OUT);
+
+    gpio_init(Led2);
+    gpio_set_dir(Led2,GPIO_OUT);
+
+
+}
+
+void init_buttons(){
+
+    gpio_init(Start_but);
+    gpio_pull_up(Start_but);
+    gpio_set_dir(Start_but,GPIO_IN);
+
+    gpio_init(Back_but);
+    gpio_pull_up(Back_but);
+    gpio_set_dir(Back_but,GPIO_IN);
+
+}
+
 
 void enumerate_status(int stat){
    switch(stat) {

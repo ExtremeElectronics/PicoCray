@@ -148,29 +148,36 @@ void Test_XPT_2046(){
 
     XPT_2046_Init();
 
-    uint16_t x,y,rx,ry,z;
+    uint16_t x,y,rx,ry;
+    uint16_t last_x=0,last_y=0;
 
     while(1){
-      z=XPT_2046_GetRawZ();
-      printf("%i \n",z);
-//       if (gpio_get(XPT_2046_IRQ)==0){
-      if(z>500){  
-         GFX_clearScreen();
+//      z=XPT_2046_GetRawZ();
+//      printf("%i \n",z);
+       if (gpio_get(XPT_2046_IRQ)==0){
+//      if(z>500){  
+//         GFX_clearScreen();
 
       //   printf(" IRQ High ");
 //       }else{
       //   printf(" IRQ Low ");
+         sleep_ms(20);         
 
          x=XPT_2046_GetX();
          rx=XPT_2046_GetRawX();
          y=XPT_2046_GetY() ;
          ry=XPT_2046_GetRawY();
+
+         GFX_fillRect(last_x,last_y,10,10,GFX_RGB565(0, 0, 0));
          
-         z=XPT_2046_GetRawZ();
+         if(x>10 && x<MaxMandX-10 && y>10 && y<MaxMandY-10){
          
-         printf(" X:%i[%i] Y:%i[%i] Z:%i \n",x,rx,y,ry,z );
-         GFX_fillRect(MaxMandX-x,MaxMandY-y,10,10,GFX_RGB565(211, 236, 248));
-         sleep_ms(100);
+           printf(" X:%i[%i] Y:%i[%i]  \n",x,rx,y,ry );
+           GFX_fillRect(MaxMandX-x,MaxMandY-y,10,10,GFX_RGB565(211, 236, 248));
+           last_x=MaxMandX-x;
+           last_y=MaxMandY-y;
+        } 
+//        sleep_ms(100);
        }
        sleep_ms(10);
     }

@@ -15,9 +15,14 @@
 //#define MaxMandX 40
 //#define MaxMandY 20
 
-int MandYOffset=0;
-int MandXOffset=0;
+double MandYOffset=0;
+double MandXOffset=0;
 double zoom=3;
+
+double BackMandYOffset=0;
+double BackMandXOffset=0;
+double Backzoom=3;
+
 
 char debug=0;
 int questioncnt=0;
@@ -228,9 +233,9 @@ int get_next_question(uint8_t proc){
     if (debug>0)printf("MandX:%i,MandY:%i for proc: %i\n",mandx,mandy,proc);
     coord[proc][0]=mandx;
     coord[proc][1]=mandy;
-    dchar.dy=(double)(mandy-MandYOffset)/MaxMandY*zoom; //only send y once ASSUMES Y WONT CHANGE DURING LUMP
+    dchar.dy=(double)(mandy-MandYOffset)/MaxMandY*zoom*3; //only send y once ASSUMES Y WONT CHANGE DURING LUMP
     while (lump<LUMPSIZE && r==0){
-        dchar.dx[lump]=(double)(mandx-MandXOffset)/MaxMandX*zoom; 
+        dchar.dx[lump]=(double)(mandx-MandXOffset)/MaxMandX*zoom*3; 
         //if (debug>3) q=mandelbrot(dchar.dx[lump],dchar.dy[lump]);
         answerref[proc][lump]=questioncnt;
         r=next_mand();
@@ -427,34 +432,63 @@ void do_controller(char dbg){
 int wait_for_touch(){
     printf("Wait for Touch\n");
 
-    uint16_t x,y,windowwidth,windowheight;
-    int touched=0;
+    uint16_t x=0,y=0;
+    double windowwidth,windowheight;
+
+    int touched=0,back=0;
     while(touched==0){
        // if touched.
-       if (XPT_2046_GetRawZ()>500){
-       //if (gpio_get(XPT_2046_IRQ)==0){
-
+//       if (XPT_2046_GetRawZ()>500){
+       if (gpio_get(XPT_2046_IRQ)==0){
+         sleep_ms(20);
          x=XPT_2046_GetX();
          y=XPT_2046_GetY();
 
-         printf("Touch X:%i Y:%i \n",x,y );
-         touched=1;
+         if(x>10 && x<MaxMandX-10 && y>10 && y<MaxMandY-10){
+           touched=1;
+         }
+       }
+       if(gpio_get(Back_but)==0){
+          touched=1;
+          back=1;
        }
     }
+    printf("Touch X:%i Y:%i \n",x,y );
 
-    printf("Before: MandXoff:%i, MandYoff:%i, Zoom: %f \n",MandXOffset,MandYOffset,zoom);
+    printf("Before: MandXoff:%f, MandYoff:%f, Zoom: %f \n",MandXOffset,MandYOffset,zoom);
 
-    // calculate new mandle position and zoom
-
-    zoom=zoom/1.8;
+    // calculate new mandle position and zoom    
     
-    windowwidth=zoom*MaxMandX;
-    MandXOffset=MandXOffset-0.5*windowwidth+(windowwidth*x/MaxMandX);
+    if (back){
+        MandYOffset=BackMandYOffset;
+        MandXOffset=BackMandXOffset;
+        zoom=Backzoom;
+    }else{
+        BackMandYOffset=MandYOffset;
+        BackMandXOffset=MandXOffset;
+        Backzoom=zoom;
+        
+    //    windowwidth=zoom*MaxMandX;
+    //    windowheight=zoom*MaxMandY;  
+        windowwidth=MaxMandX/zoom;
+        windowheight=MaxMandY/zoom;  
+        MandYOffset=MandYOffset-windowheight*0.5+(windowheight*y/MaxMandY);
+        MandXOffset=MandXOffset-windowwidth*0.5+(windowwidth*x/MaxMandX);
+        //set next zoom level
+        zoom=zoom/1.5;
+    }
     
-    windowheight=zoom*MaxMandY;
-    MandYOffset=MandYOffset-0.5*windowheight+(windowheight*y/MaxMandY);
+    
+    
+/*    
+    zoom=zoom/1.5;
+    windowwidth=zoom*MaxMandX/0.5;// *1.5/2;
+    windowheight=zoom*MaxMandY/0.5;// *1.5/2;  
+    MandYOffset=MandYOffset-windowheight*0.5+(windowheight*y/MaxMandY);
+    MandXOffset=MandXOffset-windowwidth*0.5+(windowwidth*x/MaxMandX);
+*/
 
-    printf("After: MandXoff:%i, MandYoff:%i, Zoom: %f \n",MandXOffset,MandYOffset,zoom);
+    printf("After: MandXoff:%f, MandYoff:%f, Zoom: %f \n",MandXOffset,MandYOffset,zoom);
     
     GFX_fillRect(MaxMandX-x,MaxMandY-y,10,10,0);
     
@@ -462,14 +496,16 @@ int wait_for_touch(){
 }
 
 void do_touch_loop(){
+    //init touch controller
     XPT_2046_Init();
     
     int go=1;
-//position
+    //starting position
     MandXOffset=MaxMandX/1.5;
     MandYOffset=MaxMandY/2;
-//zoom
-    zoom=3;
+    //startng zoom
+//    zoom=3;
+    zoom=1;
    
     while(go==1){
         do_controller(0);

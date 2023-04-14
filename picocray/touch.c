@@ -2,7 +2,6 @@
 #include "pico/stdlib.h"
 #include "hardware/spi.h"
 
-
 #define LCD_WIDTH 240
 #define LCD_HEIGHT 320
 
@@ -28,23 +27,6 @@
 #define    TOUCH_PRES1  0xB0
 #define    TOUCH_PRES2  0xC0
 
-void XPT_2046_Init()
-{
-    spi_init(XPT_2046_spi, 4000000);
-
-    gpio_set_function(XPT_2046_DO, GPIO_FUNC_SPI);
-    gpio_set_function(XPT_2046_DIN, GPIO_FUNC_SPI);
-    gpio_set_function(XPT_2046_SCK, GPIO_FUNC_SPI);
-
-#if (USE_CS==1)      
-    gpio_init(XPT_2046_CS);
-    gpio_set_dir(XPT_2046_CS, GPIO_OUT);
-    gpio_put(XPT_2046_CS, 1);
-#endif 
-    gpio_init(XPT_2046_IRQ);
-    gpio_set_dir(XPT_2046_IRQ, GPIO_IN);
-
-}
 
 
 uint8_t SPI_Write_Byte(uint8_t value)                                    
@@ -81,43 +63,65 @@ uint16_t XPT_2046_GetRawZ(){
    unsigned long z=0;
    int a;
    //read and ignore a few values
-   for(a=0;a<2;a++){
+   for(a=0;a<5;a++){
      Send_XPT2046_cmd(TOUCH_PRES1);
    }
    //average 10 positions
    for(a=0;a<8;a++){
      z=z+Send_XPT2046_cmd(TOUCH_PRES1);
    }
-   return z>>3;
+   return z/8;
 }
 
 uint16_t XPT_2046_GetRawY(){
    unsigned long y=0;
    int a;
    //read and ignore a few values
-   for(a=0;a<2;a++){
-     Send_XPT2046_cmd(TOUCH_READ_Y);
+   for(a=0;a<5;a++){
+      Send_XPT2046_cmd(TOUCH_READ_Y);
    }
    //average 10 positions
    for(a=0;a<8;a++){
      y=y+Send_XPT2046_cmd(TOUCH_READ_Y);
    }
-   return y>>3;
+   return y/8;
 }
 
 uint16_t XPT_2046_GetRawX(){
    unsigned long x=0;
    int a;
-   //read an ignore a few values
-   for(a=0;a<2;a++){
+   //read and ignore a few values
+   for(a=0;a<5;a++){
      Send_XPT2046_cmd(TOUCH_READ_X);
    }
    //average 10 positions
    for(a=0;a<8;a++){
      x=x+Send_XPT2046_cmd(TOUCH_READ_X);
    }
-   return x>>3;
+   return x/8;
 }
+
+
+void XPT_2046_Init()
+{
+    spi_init(XPT_2046_spi, 4000000);
+
+    gpio_set_function(XPT_2046_DO, GPIO_FUNC_SPI);
+    gpio_set_function(XPT_2046_DIN, GPIO_FUNC_SPI);
+    gpio_set_function(XPT_2046_SCK, GPIO_FUNC_SPI);
+
+#if (USE_CS==1)      
+    gpio_init(XPT_2046_CS);
+    gpio_set_dir(XPT_2046_CS, GPIO_OUT);
+    gpio_put(XPT_2046_CS, 1);
+#endif 
+    gpio_init(XPT_2046_IRQ);
+    gpio_set_dir(XPT_2046_IRQ, GPIO_IN);
+
+    XPT_2046_GetRawY();
+
+}
+
 
 uint16_t XPT_2046_GetX()
 {
@@ -134,6 +138,7 @@ uint16_t XPT_2046_GetY()
 {
     uint16_t y;
     y = XPT_2046_GetRawY();
+    printf("Raw y %i\n",y);
 //    y = ((y-Ymin)*LCD_HEIGHT)/(Ymax-Ymin);
     y = LCD_HEIGHT-((y-Ymin)*LCD_HEIGHT)/(Ymax-Ymin);
     if(y<=0) y = 0;
