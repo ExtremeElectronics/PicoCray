@@ -9,6 +9,10 @@
 #include "ili9341.h"
 #include "gfx.h"
 
+//load pallette
+#include "pallette128.c"
+//#include "pallette16.c"
+
 //define the size of the mand
 #define MaxMandX 240
 #define MaxMandY 320
@@ -19,10 +23,10 @@ double MandYOffset=0;
 double MandXOffset=0;
 double zoom=3;
 
+//save last view settings
 double BackMandYOffset=0;
 double BackMandXOffset=0;
 double Backzoom=3;
-
 
 char debug=0;
 int questioncnt=0;
@@ -41,25 +45,6 @@ int mandx=0,mandy=0;
 
 //uint16_t *buff = NULL;
 uint16_t buff[LUMPSIZE];
-
-uint16_t mapping[16]={
-    GFX_RGB565(0   ,0   ,0),          //black
-    GFX_RGB565(0xAA,0   ,0),       //red
-    GFX_RGB565(0   ,0xAA,0),       //green
-    GFX_RGB565(0xAA,0x55,0),    //brown
-    GFX_RGB565(0   ,0   ,0xAA),       //blue
-    GFX_RGB565(0xAA,0   ,0xAA),    //Magenta
-    GFX_RGB565(0   ,0xAA,0xAA),    //Cyan
-    GFX_RGB565(0xAA,0xAA,0xAA), //light Grey
-    GFX_RGB565(0x55,0x55,0x55), //grey
-    GFX_RGB565(0xff,0x55,0x55), //bright red
-    GFX_RGB565(0x55,0xff,0x55), //bright green
-    GFX_RGB565(0xff,0xff,0x55), //yellow
-    GFX_RGB565(0   ,0   ,0xff),       //bright blue
-    GFX_RGB565(0xff,0x55,0xff), //bright magenta
-    GFX_RGB565(0x55,0xff,0xff), //bright cyan
-    GFX_RGB565(0xff,0xff,0xff),  //white
-};
 
 static void setup_controller(){
     //SDA
@@ -81,37 +66,17 @@ static void setup_controller(){
 
 //Display routines
 void init_disp(){
-/*    mapping[0]=GFX_RGB565(66, 30, 15);
-    mapping[1]=GFX_RGB565(25, 7, 26);
-    mapping[2]=GFX_RGB565(9, 1, 47);
-    mapping[3]=GFX_RGB565(4, 4, 73);
-    mapping[4]=GFX_RGB565(0, 7, 100);
-    mapping[5]=GFX_RGB565(12, 44, 138);
-    mapping[6]=GFX_RGB565(24, 82, 177);
-    mapping[7]=GFX_RGB565(57, 125, 209);
-    mapping[8]=GFX_RGB565(134, 181, 229);
-    mapping[9]=GFX_RGB565(211, 236, 248);
-    mapping[10]=GFX_RGB565(241, 233, 191);
-    mapping[11]=GFX_RGB565(248, 201, 95);
-    mapping[12]=GFX_RGB565(255, 170, 0);
-    mapping[13]=GFX_RGB565(204, 128, 0);
-    mapping[14]=GFX_RGB565(153, 87, 0);
-    mapping[15]=GFX_RGB565(106, 52, 3);
-*/
     LCD_initDisplay();
     LCD_setRotation(0);
     GFX_clearScreen();
 }
 
-uint16_t do_map(int c){
-   return mapping[c %16];
-}
 
 //void write_lump_to_display(uint16_t x,uint16_t y,uint8_t * data ){
 void write_lump_to_display(uint16_t x,uint16_t y,uint8_t * data ){
     uint8_t lump;
     for (lump=0;lump<LUMPSIZE;lump++){
-        buff[lump]=mapping[data[lump] %16];
+        buff[lump]=mapping[data[lump] % MappingMax];
     }
     LCD_WriteBitmap(x, y, LUMPSIZE,1, buff);
 }
@@ -145,7 +110,7 @@ bool IsProcOnAddress(uint8_t addr){
     return ret==1;
 }
 
-static int GetProcStatus(uint8_t addr){
+static int get_proc_status(uint8_t addr){
     if (debug>2)printf("Get Proc Status from Addr %02X[%02X]\n",addr,addr-I2C_PROC_LOWEST_ADDR);
     int r=-99,count;
     uint8_t buf[3];
@@ -173,14 +138,14 @@ static void check_proc_exists(){
     int a,sa;
     for (a=0;a<MAXProc;a++){
       sa=a+I2C_PROC_LOWEST_ADDR;
-      if(GetProcStatus(sa)>0){
+      if(get_proc_status(sa)>0){
          addralloc[a]=1;
          printf("Proc exists at %i\n",sa);
       } 
     }
 }
 
-int getnextprocwithstatus(uint8_t stat){
+int get_next_proc_with_status(uint8_t stat){
     if (debug>2)printf("Get Next status %i Proc\n",stat);
     int sa;
     int r=-1;
@@ -190,7 +155,7 @@ int getnextprocwithstatus(uint8_t stat){
         if (lastproc>MAXProc)lastproc=0;
         if (addralloc[lastproc]==true){
             sa=lastproc+I2C_PROC_LOWEST_ADDR;
-            if (GetProcStatus(sa)==stat){
+            if (get_proc_status(sa)==stat){
                 r=lastproc;
                 break;
             }
@@ -320,8 +285,6 @@ void check_for_unallocated_processors(){
           printf("\n############# Out of spare Procs\n");
         }
    }//if proc on addres     
-
-
 }
 
 
@@ -365,6 +328,7 @@ void do_controller(char dbg){
     puts("\nI2C Controller Start\n");
 
     int proc;
+    int stat;
 
     puts("Check existing Procs");    
     check_proc_exists();
@@ -375,29 +339,38 @@ void do_controller(char dbg){
     while(go>0){
         //check for un allocated Processors        
         if (gpio_get(I2C_Assert)==1){
+            gpio_put(Led1,1);            
             check_for_unallocated_processors();
+        }else{
+            gpio_put(Led1,0);    
         }//if assert
 
         //check free processors 
         if (debug>2)puts("Check Free Procs");
-//        proc=getnextfreeproc(); //get addess of free proc
-        proc=getnextprocwithstatus(poll_ready);
+
+        proc=get_next_proc_with_status(poll_ready);
         if (proc>=0 && go==2){ 
             if (debug>2) printf("Proc %i free add process\n",proc);
             if (get_next_question(proc)==0){
-//                set_poll_status(proc, poll_wait);
                 if (debug>2) printf("SendQuestion process\n");
                 //send 2*lump floats to var + poll=poll_go
                 if (send_questions_to_proc(proc)==0){
-                    printf("\n###Send failed %i\n",proc);                 
+                    printf("\n### Send failed %i\n",proc);                 
                 }            
-                //after sending questions set proc to go. not needed as tagged on to questions now.
-//                set_poll_status( proc,poll_go);
+                //after sending questions set proc to go, check they are received, by checking status
+                stat=get_proc_status(proc+I2C_PROC_LOWEST_ADDR);
+                if(stat!=poll_busy){
+                  putchar('!');
+                  if (debug>2) printf("\n!!!!!!!! Proc not busy %i - %i !!!!!!!!! \n",proc,stat);
+                  if (send_questions_to_proc(proc)==0){
+                       printf("\n### 2nd Send failed %i\n",proc);
+                  } //send questions
+                }//poll busy
             }else{
               printf("\n\n*********** Finished ***********");
               //set finished - wait for all done
               go=1;//no further questions wait till all answers.
-            }
+            }//get next question
         }else{
             putchar('~');
             if (debug>2) puts("No free procs");
@@ -406,8 +379,9 @@ void do_controller(char dbg){
         //check for procs that have done.
         if (debug>2)puts("Check procs done" );
 //        proc=getnextdoneproc();
-        proc=getnextprocwithstatus(poll_done);
+        proc=get_next_proc_with_status(poll_done);
         if (proc>=0){
+            // has Done procs
             if (debug>2)printf("read answer from proc %i\n",proc);
             if (do_answers(proc)){             
                 //after getting answers set proc back to ready.
@@ -418,13 +392,13 @@ void do_controller(char dbg){
         }else{
             if (debug>2)printf("No done procs\n");
             putchar('?');
-            //if finished set
+            //if finished(go=1) set go=2 for complete
             if (go==1){
                 go=0; //have all answers stop
                 puts("\n************ Complete **************");
             }
-        }  
-        tight_loop_contents();
+        }  // has done procs
+//        tight_loop_contents();
      }//while
 }
 
@@ -435,23 +409,31 @@ int wait_for_touch(){
     uint16_t x=0,y=0;
     double windowwidth,windowheight;
 
-    int touched=0,back=0;
+    int touched=0,back=0,again=0;;
     while(touched==0){
        // if touched.
-//       if (XPT_2046_GetRawZ()>500){
        if (gpio_get(XPT_2046_IRQ)==0){
          sleep_ms(20);
          x=XPT_2046_GetX();
          y=XPT_2046_GetY();
-
+         
+         //set as touched if not near the edges as these are random
          if(x>10 && x<MaxMandX-10 && y>10 && y<MaxMandY-10){
-           touched=1;
+         //set touched on release
+//              if (gpio_get(XPT_2046_IRQ)==1){touched=1;}
+            touched=1;
          }
        }
+       //check buttons
        if(gpio_get(Back_but)==0){
           touched=1;
           back=1;
        }
+       if(gpio_get(Start_but)==0){
+          touched=1;
+          again=1;
+       }
+
     }
     printf("Touch X:%i Y:%i \n",x,y );
 
@@ -468,25 +450,18 @@ int wait_for_touch(){
         BackMandXOffset=MandXOffset;
         Backzoom=zoom;
         
-    //    windowwidth=zoom*MaxMandX;
-    //    windowheight=zoom*MaxMandY;  
         windowwidth=MaxMandX/zoom;
         windowheight=MaxMandY/zoom;  
-        MandYOffset=MandYOffset-windowheight*0.5+(windowheight*y/MaxMandY);
-        MandXOffset=MandXOffset-windowwidth*0.5+(windowwidth*x/MaxMandX);
+        
+        //if again set only alter zoom
+        if(again==0){
+            MandYOffset=MandYOffset-windowheight*0.5+(windowheight*y/MaxMandY);
+            MandXOffset=MandXOffset-windowwidth*0.5+(windowwidth*x/MaxMandX);
+        }
         //set next zoom level
         zoom=zoom/1.5;
     }
     
-    
-    
-/*    
-    zoom=zoom/1.5;
-    windowwidth=zoom*MaxMandX/0.5;// *1.5/2;
-    windowheight=zoom*MaxMandY/0.5;// *1.5/2;  
-    MandYOffset=MandYOffset-windowheight*0.5+(windowheight*y/MaxMandY);
-    MandXOffset=MandXOffset-windowwidth*0.5+(windowwidth*x/MaxMandX);
-*/
 
     printf("After: MandXoff:%f, MandYoff:%f, Zoom: %f \n",MandXOffset,MandYOffset,zoom);
     

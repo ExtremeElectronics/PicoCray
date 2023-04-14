@@ -9,7 +9,10 @@
 
 //static const uint I2C_BAUDRATE = 100000; // 100 kHz
 //static const uint I2C_BAUDRATE = 400000; // 400 kHz
-static const uint I2C_BAUDRATE =  2000000; // 1000 kHz
+//works
+static const uint I2C_BAUDRATE =  2000000; // 2000 kHz
+//works, but only after procs have been allocated ???
+//static const uint I2C_BAUDRATE =  4000000; // 4000 kHz
 
 // For this example, we run both the master and slave from the same board.
 // You'll need to wire pin GP4 to GP6 (SDA), and pin GP5 to GP7 (SCL).

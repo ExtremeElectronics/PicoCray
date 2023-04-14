@@ -54,7 +54,7 @@ void do_proc_statuses(){
    int p;
    int s;
    for (p=0;p<MAXProc;p++){
-      s=GetProcStatus(p+I2C_PROC_LOWEST_ADDR);
+      s=get_proc_status(p+I2C_PROC_LOWEST_ADDR);
       if(s>=0){
           printf("Proc:%i Status: ",p);
           enumerate_status(s);
