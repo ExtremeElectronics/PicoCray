@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <hardware/watchdog.h>
 
+//I2C bus speed
 //static const uint I2C_BAUDRATE = 100000; // 100 kHz
 //static const uint I2C_BAUDRATE = 400000; // 400 kHz
 //works
@@ -28,8 +29,8 @@ static const uint I2C_BAUDRATE =  3000000; // 2000 kHz
 #define Led1 16
 #define Led2 17
 
-
-#define LED_PIN 25 //Busy Led 
+//Busy Led
+#define LED_PIN 25 //pico onboard LED 
 
 //start of processor addresses
 #define I2C_PROC_LOWEST_ADDR  0x20 //lowest processor address
@@ -39,11 +40,11 @@ static uint i2c_address = I2C_DEFAULT_ADDRESS; //default I2C address
 
 #define MAXProc 16//max number of processors
 
-
 //lumpsize number of questions/answers sent at once
-#define LUMPSIZE 24
+#define LUMPSIZE 120
 //#define QUESTIONSIZE LUMPSIZE*2*8 //LUMPSIZE 8 byte doubles x 2 (x *Y)
-#define QUESTIONSIZE (LUMPSIZE+1)*8+1 //LUMPSIZE 8 byte doubles(x) + 8 byte double (y) +code
+//#define QUESTIONSIZE (LUMPSIZE+1)*8+1 //LUMPSIZE 8 byte doubles(x) + 8 byte double (y) +code
+#define QUESTIONSIZE (3+1)*8+1 //LUMPSIZE 8 byte doubles(x) + 8 byte double (y) +code
 //#define ANSWERSIZE LUMPSIZE*2 //LUMPSIZE uint16's 
 #define ANSWERSIZE LUMPSIZE*1 //LUMPSIZE uint16's 
 
@@ -83,8 +84,6 @@ void init_leds(){
 
     gpio_init(Led2);
     gpio_set_dir(Led2,GPIO_OUT);
-
-
 }
 
 void init_buttons(){
@@ -96,7 +95,6 @@ void init_buttons(){
     gpio_init(Back_but);
     gpio_pull_up(Back_but);
     gpio_set_dir(Back_but,GPIO_IN);
-
 }
 
 
@@ -146,19 +144,18 @@ volatile static struct
 
 //Answer Structure
 union { 
-    uint8_t arr[ANSWERSIZE]; //LUMPSIZE uint16's  
-    uint8_t i[LUMPSIZE];
-//    uint16_t i[LUMPSIZE];
+    uint8_t arr[ANSWERSIZE]; //LUMPSIZE uint8's  
+    uint8_t i[LUMPSIZE];  //LUMPSIZE uint8's
      
 }ichar;
 
 //Question Structure
 union {
-    uint8_t arr[QUESTIONSIZE]; //20x doubles
+    uint8_t arr[QUESTIONSIZE]; 
     struct{
-        double dx[LUMPSIZE];
-//        double dy[LUMPSIZE];
+        double dx;
         double dy;
+        double step;
         uint8_t code;
     };    
 } dchar;

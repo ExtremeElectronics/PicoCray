@@ -14,11 +14,8 @@
 //#include "pallette16.c"
 
 //define the size of the mand
-//#define MaxMandX 240
-//#define MaxMandY 320
-
-double MaxMandX = 240;
-double MaxMandY = 320;
+const double MaxMandX = 240;
+const double MaxMandY = 320;
 
 double MandYOffset=0;
 double MandXOffset=0;
@@ -190,24 +187,27 @@ int next_mand(){
     questioncnt++;
     return r;
 }
-/*
+
 int get_next_question(uint8_t proc){
     int r=0;
     int lump=0;
     //printf("\n");
-    if (debug>0)printf("MandX:%i,MandY:%i for proc: %i\n",mandx,mandy,proc);
+    if (debug>0)printf("MandX:%i,MandY:%i Step:%f for proc: %i\n",mandx,mandy,dchar.step,proc);
     coord[proc][0]=mandx;
     coord[proc][1]=mandy;
-    dchar.dy=(double)(mandy-MandYOffset)/MaxMandY*zoom*3; //only send y once ASSUMES Y WONT CHANGE DURING LUMP
+    dchar.dy=mandy/MaxMandY*zoom+MandYOffset; // x/y start of lump y doesnt change 
+    dchar.dx=mandx/MaxMandX*zoom+MandXOffset; 
+    dchar.step=1/MaxMandX*zoom;  // stepsize for next step
+    
     while (lump<LUMPSIZE && r==0){
-        dchar.dx[lump]=(double)(mandx-MandXOffset)/MaxMandX*zoom*3; 
-        answerref[proc][lump]=questioncnt;
+    //    dchar.dx[lump]=mandx/MaxMandX*zoom+MandXOffset; 
+        //answerref[proc][lump]=questioncnt;
         r=next_mand();
         lump++;
         }//while
-   return r;
+    return r;
 }
-*/
+/*
 int get_next_question(uint8_t proc){
     int r=0;
     int lump=0;
@@ -224,6 +224,7 @@ int get_next_question(uint8_t proc){
         }//while
    return r;
 }
+*/
 
 int send_questions_to_proc(uint8_t proc){
     uint8_t rbuf[QUESTIONSIZE+2];
@@ -382,7 +383,6 @@ void do_controller(char dbg){
                 puts("\n************ Complete **************");
             }
         }  // has done procs
-//        tight_loop_contents();
      }//while
 }
 
@@ -423,7 +423,7 @@ int wait_for_touch(){
 
     }
 
-    printf("Before: MandXoff:%f, MandYoff:%f, Zoom: %f \n",MandXOffset,MandYOffset,zoom);
+    if(debug>1)printf("Before: MandXoff:%f, MandYoff:%f, Zoom: %f \n",MandXOffset,MandYOffset,zoom);
 
     // calculate new mandle position and zoom    
     if (back){
@@ -439,37 +439,17 @@ int wait_for_touch(){
 
         GFX_drawRect(x-MaxMandX/2/zoomspeed,y-MaxMandY/2/zoomspeed,MaxMandX/zoomspeed,MaxMandY/zoomspeed,45);
 
-
-//        GFX_fillCircle((x-MaxMandX/2)*zoom,y-MaxMandY/2*zoom  ,5,545);
-
-        printf("BLH %f,%f \n",x-MaxMandX/2*zoom,y-MaxMandY/2*zoom);
+        if(debug>1)printf("BLH %f,%f \n",x-MaxMandX/2*zoom,y-MaxMandY/2*zoom);
                 
         //if again set only alter zoom
         if(again==0){
             zoom=zoom/zoomspeed;
 
-//            MandXOffset=MandXOffset - (x-MaxMandX/2)*zoom ;
-//            MandYOffset=MandYOffset - (y-MaxMandY/2)*zoom ;
-            
-//            MandXOffset= MandXOffset -  x*zoom + MaxMandX/2;
-//            MandYOffset= MandYOffset - y*zoom + MaxMandX/2;
-//            double xoffset=(x-MaxMandX/2)*zoom;
-//            double yoffset=(y-MaxMandY/2)*zoom;
-
               double xoffset=(x-MaxMandX/2)/MaxMandX;
               double yoffset=(y-MaxMandY/2)/MaxMandY;
 
-         printf("touch Offsets %f,%f \n",xoffset,yoffset);
+              if(debug>1)printf("touch Offsets %f,%f \n",xoffset,yoffset);
 
-            
-//            GFX_fillCircle(xoffset,yoffset  ,5,545);            
-  
-//            MandXOffset= MandXOffset - xoffset ;// - MaxMandX *(zoom/zoomlast)/2; // + MaxMandX/2*zoom; 
-//            MandYOffset= MandYOffset - yoffset ;// - MaxMandY *(zoom/zoomlast)/2; // + MaxMandY/2*zoom;
-//            MandXOffset= MandXOffset - xoffset - MaxMandX *(zoomlast-zoom)/2; // + MaxMandX/2*zoom; 
-//            MandYOffset= MandYOffset - yoffset - MaxMandY *(zoomlast-zoom)/2; // + MaxMandY/2*zoom;
-
-            //centre offset
               MandXOffset= MandXOffset + zoomlast/2;
               MandYOffset= MandYOffset + zoomlast/2;         
               MandXOffset= MandXOffset + xoffset*zoom;
@@ -482,7 +462,7 @@ int wait_for_touch(){
 
         //set next zoom level
     }
-    printf("After: MandXoff:%f, MandYoff:%f, Zoom: %f \n     Window (%f,%f)\n",MandXOffset,MandYOffset,zoom,windowwidth,windowheight);
+    if(debug>1)printf("After: MandXoff:%f, MandYoff:%f, Zoom: %f \n     Window (%f,%f)\n",MandXOffset,MandYOffset,zoom,windowwidth,windowheight);
      
     return 1;
 }

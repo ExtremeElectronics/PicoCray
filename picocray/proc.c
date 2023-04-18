@@ -178,10 +178,9 @@ void do_proc(){
                          dchar.arr[a]=context.mem[quest+a];
                      }
                      for(uint8_t lumps=0;lumps<LUMPSIZE;lumps++){
-           //            ichar.i[lumps]=mandelbrot(dchar.dx[lumps],dchar.dy[lumps]);
-           //            if(debug)printf("x%f y%f %i\n",dchar.dx[lumps],dchar.dy[lumps],ichar.i[lumps]); 
-                         ichar.i[lumps]=mandelbrot(dchar.dx[lumps],dchar.dy);
-                         if(debug)printf("x%f y%f %i\n",dchar.dx[lumps],dchar.dy,ichar.i[lumps]); 
+                         ichar.i[lumps]=mandelbrot(dchar.dx,dchar.dy);
+                         dchar.dx=dchar.dx+dchar.step;
+                         if(debug)printf("x%f y%f s%f %i\n",dchar.dx,dchar.dy,dchar.step,ichar.i[lumps]); 
                          tight_loop_contents();
                      }
                      for(uint8_t a=0;a<ANSWERSIZE;a++){
