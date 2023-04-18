@@ -21,8 +21,8 @@ Initially dump the uf2 file directly onto the picos USB drive as normal.
 As long as the code is running correctly you can use the USB serial speed change to set the pico into program mode. 
 
 ## Code
-The calculations are sent as "Lumps" each lump is (currently) 24 calculations
-Currently the picos will run multiple Mandlebrot calculations for LUMP(number) double x and a single y co-ordinate and return LUMP integers of the itteration count, for each.
+The calculations are sent as "Lumps" each lump is (currently) 120 calculations
+Currently the picos will run multiple Mandlebrot calculations for LUMP(number) of steps from a starting double x and y co-ordinate and return LUMP integers of the itteration count, for each.
 There are unions in common.h to structure the data sent/received. 
 Data is sent and received as arrays of uint8_t by the controller to the Processors (proc's) via I2C
 
