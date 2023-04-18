@@ -32,18 +32,20 @@ int main() {
         do_proc();
     }else{
        //we are a controller
-        int c='z'; //start with a run
         init_buttons();
+
+        int c='z'; //start with a run
+        if (gpio_get(Back_but)==0){c=EOF;}
+        
+        setup_controller();
         init_leds();
         debug=1;
         init_disp();
-        setup_controller();
         puts("\n\nController\n (t)Statuses, (s)Scan, (p)dump Addr 0x20, (b)dump addr 0x17 ");
         puts(" (r)Run, (d)Debug, (u) check unallocated (c) Clear Display (x) Test Display\n");
         puts(" (y) Reset Proc Status, (@) Touch Calib/Test, (z) Run with touch and zoom\n");
         while(1){
             if (gpio_get(Start_but)==0){c='z';}
-
             if(c!=EOF){
                 if(c=='t'){
                     debug=0; 
@@ -99,9 +101,9 @@ int main() {
                    Test_XPT_2046();
                 }
             
-            sleep_ms(10);
-            c=getchar_timeout_us(100000);
+                sleep_ms(10);
             }//c
+            c=getchar_timeout_us(100000);
         }
 //        do_master(0);
     }

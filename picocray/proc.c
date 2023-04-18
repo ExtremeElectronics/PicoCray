@@ -125,7 +125,7 @@ void do_proc(){
      printf("\n Slave loop - Assert %i\n",TestProcAssert());
      printf("Listning on %02X\n",I2C_DEFAULT_ADDRESS);
      while(1){
-//         sleep_us(100);
+         sleep_us(100);
 //         if(dc++>10000){
 //           putchar('.');
 //           dc=0;
@@ -138,28 +138,29 @@ void do_proc(){
              if(context.changed[cmd_sl_addr ]){
                  context.changed[cmd_sl_addr ]=false;                
                  if(context.asserting==true){
-                     if (context.mem[poll]==0){
+//                     if (context.mem[poll]==0){
                          //i2c address change ONLY IF asserting proc
                          i2c_address=context.mem[cmd_sl_addr];
+                         
                          puts("\nI2C SLAVE address change");
                          //restart handler on new address
-                     
                          i2c_slave_deinit(I2C_MOD);
-                         sleep_ms(10);                     
+                         sleep_ms(20);                     
                          i2c_init(I2C_MOD, I2C_BAUDRATE);
                          // configure for proc mode
                          i2c_slave_init(I2C_MOD, i2c_address, &i2c_slave_handler);
 
-                         ClearSlaveAssert();
                          printf("Listning on %02X\n",i2c_address);
                          //signal ready
                          puts("Poll Ready");
                          context.mem[poll]=poll_ready;
+
+                         ClearSlaveAssert();
                          //disconnect USB
-                         puts("Disconnecting USB\n");
+                         //puts("Disconnecting USB\n");
 
                          //Show_data(0,128);
-                     }
+//                     }
                  }else{
                       puts("Not Changing Address, not got assert");
                  }//if else
