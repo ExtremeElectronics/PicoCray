@@ -58,6 +58,13 @@ This continues until all of the Questions have been asked, and all of the Proces
 ### Display 
 Outputs the resultant Mandle to 240x320 display using the ili9341
 
+###I2C
+I've pushed the I2C to 3Mhz, its a trade off between speed and errors. Keep the wires short and terminate at both ends with 4k7's on both lines for best results.
+
+### Palettes 
+For the mandle display there are a number of palettes ranging from 16 colours to 128 these need to be compiled in (controller only) change the unremarked includes in common.h
+
+
 # Warning
 This code is all Proof of principle. Much of it works. Some of it gives reasonable results. Does it work, not for all cases. Does it give a good mandlebrot output. Well Yes, kind of, I'm getting missing LUMPS of answers, these bugs are random and currently evading capture. I'm setting traps. 
 Basically if you are going to use this code to pilot a rocket, you will end up smashing into a planet at mach something rediculous. 
