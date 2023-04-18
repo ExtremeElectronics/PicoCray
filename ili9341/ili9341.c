@@ -86,8 +86,9 @@ void LCD_setSPIperiph(spi_inst_t *s)
 
 void initSPI()
 {
-	spi_init(ili9341_spi, 500 * 40000); 
 //	spi_init(ili9341_spi, 1000 * 40000); 
+//	spi_init(ili9341_spi, 1000 * 80000); 
+	spi_init(ili9341_spi, 1000 * 400000); 
 	
 	spi_set_format(ili9341_spi, 16, SPI_CPOL_1, SPI_CPOL_1, SPI_MSB_FIRST);
 	gpio_set_function(ili9341_pinSCK, GPIO_FUNC_SPI);
@@ -262,6 +263,8 @@ void LCD_WriteBitmap(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t *b
 	ILI9341_RegData();
 	spi_set_format(ili9341_spi, 16, SPI_CPOL_1, SPI_CPOL_1, SPI_MSB_FIRST);
 #ifdef USE_DMA
+        dma_hw->timer[0] = 0x0020ffff ;     
+        channel_config_set_dreq(&dma_cfg,0x3b); // select Timer0 as treq for pacing data transfer
 	dma_channel_configure(dma_tx, &dma_cfg,
 						  &spi_get_hw(ili9341_spi)->dr, // write address
 						  bitmap,						// read address
