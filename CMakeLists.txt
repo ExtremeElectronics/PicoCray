@@ -1,16 +1,23 @@
-cmake_minimum_required(VERSION 3.13)
+add_executable(cray cray.c)
 
-include(pico_sdk_import.cmake)
+pico_enable_stdio_uart(cray 1)
+pico_enable_stdio_usb(cray 1)
 
-project(i2c_examples C CXX ASM)
+pico_add_extra_outputs(cray)
 
-set(CMAKE_C_STANDARD 11)
-set(CMAKE_CXX_STANDARD 17)
+target_compile_options(cray PRIVATE -Wall)
 
-pico_sdk_init()
+target_link_libraries(cray 
+    i2c_slave 
+    pico_stdlib 
+    hardware_adc 
+    ili9341
+    gfx 
+    hardware_dma	
+    hardware_irq
+    pico_multicore
+)
 
-add_subdirectory(i2c_slave)
-add_subdirectory(picocray)
 
 # enable usb output, disable uart output
 pico_enable_stdio_usb(cray 1)
@@ -22,4 +29,7 @@ add_compile_definitions(PICO_STDIO_USB_ENABLE_RESET_VIA_VENDOR_INTERFACE=0)
 add_compile_definitions(
     TUD_OPT_RP2040_USB_DEVICE_ENUMERATION_FIX=1
 )
+
+
+
 
