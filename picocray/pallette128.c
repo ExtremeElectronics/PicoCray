@@ -1,7 +1,7 @@
 
 #define MappingMax 128
 
-uint16_t mapping[128]= {
+uint16_t mapping[MappingMax]= {
     GFX_RGB565(161,35,18),
     GFX_RGB565(211,110,112),
     GFX_RGB565(234,137,154),

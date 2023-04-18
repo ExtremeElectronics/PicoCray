@@ -10,8 +10,10 @@
 #include "gfx.h"
 
 //load pallette
+//#include "pallette128.c"
+//#include "pallette64.c"
+//#include "pallette16b.c"
 #include "pallette16.c"
-//#include "pallette16.c"
 
 //define the size of the mand
 const double MaxMandX = 240;
@@ -272,6 +274,7 @@ int do_answers(uint8_t proc){
              printf("\n");
          }
          write_lump_to_display(coord[proc][0],coord[proc][1],ichar.i );    
+//         write_lump_to_display(coord[proc][0],coord[proc][1],ichar.arr );
          r=1;
          if (debug>1) puts("= Answer *****\n");  
      }else{
@@ -314,6 +317,7 @@ void do_controller(char dbg){
 
     int proc;
     int stat;
+    int tries=3;
 
     puts("Check existing Procs");    
     check_proc_exists();
@@ -344,13 +348,28 @@ void do_controller(char dbg){
                 }            
                 //after sending questions set proc to go, check they are received, by checking status
                 stat=get_proc_status(proc+I2C_PROC_LOWEST_ADDR);
-                if(stat!=poll_busy){
-                  putchar('!');
-                  if (debug>2) printf("\n!!!!!!!! Proc not busy %i - %i !!!!!!!!! \n",proc,stat);
-                  if (send_questions_to_proc(proc)==0){
-                       printf("\n### 2nd Send failed %i\n",proc);
-                  } //send questions
+/*              if(stat!=poll_busy){
+                    putchar('!');
+                    sleep_ms(1);
+                    if (debug>2) printf("\n!!!!!!!! Proc not busy %i - %i !!!!!!!!! \n",proc,stat);
+                    if (send_questions_to_proc(proc)==0){
+                         printf("\n### 2nd Send failed %i\n",proc);
+                    } //send questions
                 }//poll busy
+*/              
+                tries=3;  
+                while(stat!=poll_busy && tries>0){
+                    putchar('!');
+                    if (debug>2) printf("\n!!!!!!!! Proc not busy %i - %i !!!!!!!!! \n",proc,stat);
+                    if (send_questions_to_proc(proc)==0){
+                         printf("\n### 2nd Send failed %i\n",proc);     
+                    } //send questions
+                    stat=get_proc_status(proc+I2C_PROC_LOWEST_ADDR);
+                    tries--;
+                }//poll busy
+
+               
+
             }else{
               printf("\n\n*********** Finished ***********");
               //set finished - wait for all done
@@ -403,14 +422,16 @@ int wait_for_touch(){
          x=MaxMandX-XPT_2046_GetX();
          y=MaxMandY-XPT_2046_GetY();
          
-         GFX_fillRect(x-5,y-5,10,10,0);
 
          //set as touched if not near the edges as these are random
          if(x>10 && x<MaxMandX-10 && y>10 && y<MaxMandY-10){
              touched=1;
              printf("Touch X:%i Y:%i \n",x,y );
+             GFX_fillRect(x-5,y-5,10,10,0);
          }
        }
+
+
        //check buttons
        if(gpio_get(Back_but)==0){
           touched=1;
@@ -440,25 +461,27 @@ int wait_for_touch(){
         GFX_drawRect(x-MaxMandX/2/zoomspeed,y-MaxMandY/2/zoomspeed,MaxMandX/zoomspeed,MaxMandY/zoomspeed,45);
 
         if(debug>1)printf("BLH %f,%f \n",x-MaxMandX/2*zoom,y-MaxMandY/2*zoom);
+
+        double xoffset=(x-MaxMandX/2)/MaxMandX;
+        double yoffset=(y-MaxMandY/2)/MaxMandY;
                 
         //if again set only alter zoom
-        if(again==0){
-            zoom=zoom/zoomspeed;
-
-              double xoffset=(x-MaxMandX/2)/MaxMandX;
-              double yoffset=(y-MaxMandY/2)/MaxMandY;
-
-              if(debug>1)printf("touch Offsets %f,%f \n",xoffset,yoffset);
-
-              MandXOffset= MandXOffset + zoomlast/2;
-              MandYOffset= MandYOffset + zoomlast/2;         
-              MandXOffset= MandXOffset + xoffset*zoom;
-              MandYOffset= MandYOffset + yoffset*zoom;
-              MandXOffset= MandXOffset - zoom/2;
-              MandYOffset= MandYOffset - zoom/2;             
-        }else{
+        if(again==1){
+             xoffset=0;yoffset=0;
              printf("Again - ");
         }
+
+        zoom=zoom/zoomspeed;
+
+
+        if(debug>1)printf("touch Offsets %f,%f \n",xoffset,yoffset);
+
+        MandXOffset= MandXOffset + zoomlast/2;
+        MandYOffset= MandYOffset + zoomlast/2;         
+        MandXOffset= MandXOffset + xoffset*zoom;
+        MandYOffset= MandYOffset + yoffset*zoom;
+        MandXOffset= MandXOffset - zoom/2;
+        MandYOffset= MandYOffset - zoom/2;             
 
         //set next zoom level
     }
@@ -472,10 +495,10 @@ void do_touch_loop(){
     XPT_2046_Init();
     int go=1;
     //starting position
-    MandXOffset=-2.5;
-    MandYOffset=-2.0;
+    MandXOffset=-2.1;
+    MandYOffset=-1.5;
     //startng zoom
-    zoom=4;
+    zoom=3;
 
     while(go==1){
         do_controller(0);

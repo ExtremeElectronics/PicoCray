@@ -1,7 +1,7 @@
 
 #define MappingMax 16
 
-uint16_t mapping[16]={
+uint16_t mapping[MappingMax]={
     GFX_RGB565(0   ,0   ,0),          //black
     GFX_RGB565(0xAA,0   ,0),       //red
     GFX_RGB565(0   ,0xAA,0),       //green

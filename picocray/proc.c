@@ -126,41 +126,30 @@ void do_proc(){
      printf("Listning on %02X\n",I2C_DEFAULT_ADDRESS);
      while(1){
          sleep_us(100);
-//         if(dc++>10000){
-//           putchar('.');
-//           dc=0;
-//         }
          if(context.datachanged==true && context.data_received==true){ 
              context.datachanged=false;
               context.data_received=false;
-//             if(context.mem[cmd_debug]>0) printf("Poll status %i[%i] \n",context.mem[poll],context.changed[poll]);
              // address change request 
              if(context.changed[cmd_sl_addr ]){
                  context.changed[cmd_sl_addr ]=false;                
                  if(context.asserting==true){
-//                     if (context.mem[poll]==0){
-                         //i2c address change ONLY IF asserting proc
-                         i2c_address=context.mem[cmd_sl_addr];
+                     //i2c address change ONLY IF asserting proc
+                     i2c_address=context.mem[cmd_sl_addr];
                          
-                         puts("\nI2C SLAVE address change");
-                         //restart handler on new address
-                         i2c_slave_deinit(I2C_MOD);
-                         sleep_ms(20);                     
-                         i2c_init(I2C_MOD, I2C_BAUDRATE);
-                         // configure for proc mode
-                         i2c_slave_init(I2C_MOD, i2c_address, &i2c_slave_handler);
+                     puts("\nI2C SLAVE address change");
+                     //restart handler on new address
+                     i2c_slave_deinit(I2C_MOD);
+                     sleep_ms(20);                     
+                     i2c_init(I2C_MOD, I2C_BAUDRATE);
+                     // configure for proc mode
+                     i2c_slave_init(I2C_MOD, i2c_address, &i2c_slave_handler);
 
-                         printf("Listning on %02X\n",i2c_address);
-                         //signal ready
-                         puts("Poll Ready");
-                         context.mem[poll]=poll_ready;
+                     printf("Listning on %02X\n",i2c_address);
+                     //signal ready
+                     puts("Poll Ready");
+                     context.mem[poll]=poll_ready;
 
-                         ClearSlaveAssert();
-                         //disconnect USB
-                         //puts("Disconnecting USB\n");
-
-                         //Show_data(0,128);
-//                     }
+                     ClearSlaveAssert();
                  }else{
                       puts("Not Changing Address, not got assert");
                  }//if else
@@ -171,7 +160,6 @@ void do_proc(){
                  
                  if( context.mem[poll]==poll_go){
                      gpio_put(LED_PIN,1);
-//                     puts("");
                      context.mem[poll]=poll_busy;
                      //should have all variables to run
                      for(int a=0;a<QUESTIONSIZE;a++){
@@ -195,7 +183,6 @@ void do_proc(){
                      context.mem[poll]=poll_waiting;
                      if(debug)printf("Wait\n");
                  } //poll wait
-
              } //if(context.changed[poll]
          }//if context.datachanged==true
          tight_loop_contents();
