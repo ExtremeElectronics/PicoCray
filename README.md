@@ -5,6 +5,7 @@ A system for running distributed code over multiple PI Picos
 Wire all of the picos in parallel connecting GPIO 10,11,12,13 and GND to all of the picos. 
 Each pico needs powering separatly either from the USB BUS or 3V3 pin. 
 Make the I2C bus as short as possible and you will need one pair of 4k7 Ohm resistors to +3v3 on GPIO 10 and 11 ideall in the Last Processor in the chain.
+See Connections.txt and Picowiring.pdf
 
 The Code is the same for all Pico's, to specify a controller add a wire from GPIO 22 to GND 
 There must be (only) one controller in each cluster.
