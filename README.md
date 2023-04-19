@@ -67,7 +67,8 @@ For the mandle display there are a number of palettes ranging from 16 colours to
 
 
 # Warning
-This code is all Proof of principle. Much of it works. Some of it gives reasonable results. Does it work, not for all cases. Does it give a good mandlebrot output. Well Yes, kind of, I'm getting missing LUMPS of answers, these bugs are random and currently evading capture. I'm setting traps. 
+This code is all Proof of principle. Much of it works. Some of it gives reasonable results. Does it work, not for all cases. Does it give a good mandlebrot output. Well Yes
+
 Basically if you are going to use this code to pilot a rocket, you will end up smashing into a planet at mach something rediculous. 
 You have been warned. 
 
