@@ -11,9 +11,9 @@
 
 //load pallette
 //#include "pallette128.c"
-//#include "pallette64.c"
+#include "pallette64.c"
 //#include "pallette16b.c"
-#include "pallette16.c"
+//#include "pallette16.c"
 
 //define the size of the mand
 const double MaxMandX = 240;
@@ -175,7 +175,6 @@ void set_poll_status(uint8_t proc,uint8_t status){
     if (c!=2){printf("\n########## Failed to send status\n");}
 }
 
-
 int next_mand(){
     int r=0;
     mandx++;
@@ -209,24 +208,6 @@ int get_next_question(uint8_t proc){
         }//while
     return r;
 }
-/*
-int get_next_question(uint8_t proc){
-    int r=0;
-    int lump=0;
-    //printf("\n");
-    if (debug>0)printf("MandX:%i,MandY:%i for proc: %i\n",mandx,mandy,proc);
-    coord[proc][0]=mandx;
-    coord[proc][1]=mandy;
-    dchar.dy=mandy/MaxMandY*zoom+MandYOffset; //only send y once ASSUMES Y WONT CHANGE DURING LUMP
-    while (lump<LUMPSIZE && r==0){
-        dchar.dx[lump]=mandx/MaxMandX*zoom+MandXOffset; 
-        answerref[proc][lump]=questioncnt;
-        r=next_mand();
-        lump++;
-        }//while
-   return r;
-}
-*/
 
 int send_questions_to_proc(uint8_t proc){
     uint8_t rbuf[QUESTIONSIZE+2];
@@ -264,7 +245,7 @@ int do_answers(uint8_t proc){
      int r=0;
      if (debug>3) printf("Getting Answers from Proc %i\n",proc);
      c=i2c_write_blocking(I2C_MOD, proc+I2C_PROC_LOWEST_ADDR, rbuf, 1, false);
-     c= i2c_read_blocking(I2C_MOD, proc+I2C_PROC_LOWEST_ADDR, rbuf, ANSWERSIZE, true);
+     c=i2c_read_blocking(I2C_MOD, proc+I2C_PROC_LOWEST_ADDR, rbuf, ANSWERSIZE, true);
      if (c==ANSWERSIZE){
          for(int a=0;a<ANSWERSIZE;a++){
              ichar.arr[a]=rbuf[a];
@@ -307,7 +288,6 @@ void check_for_unallocated_processors(){
    }//if proc on addres     
 }
 
-
 void do_controller(char dbg){
     mandx=0,mandy=0;
 
@@ -317,7 +297,7 @@ void do_controller(char dbg){
 
     int proc;
     int stat;
-    int tries=3;
+    int tries;
 
     puts("Check existing Procs");    
     check_proc_exists();
@@ -348,27 +328,20 @@ void do_controller(char dbg){
                 }            
                 //after sending questions set proc to go, check they are received, by checking status
                 stat=get_proc_status(proc+I2C_PROC_LOWEST_ADDR);
-/*              if(stat!=poll_busy){
-                    putchar('!');
-                    sleep_ms(1);
-                    if (debug>2) printf("\n!!!!!!!! Proc not busy %i - %i !!!!!!!!! \n",proc,stat);
-                    if (send_questions_to_proc(proc)==0){
-                         printf("\n### 2nd Send failed %i\n",proc);
-                    } //send questions
-                }//poll busy
-*/              
-                tries=3;  
+
+                tries=2;  
                 while(stat!=poll_busy && tries>0){
-                    putchar('!');
+                    putchar('r');
                     if (debug>2) printf("\n!!!!!!!! Proc not busy %i - %i !!!!!!!!! \n",proc,stat);
                     if (send_questions_to_proc(proc)==0){
-                         printf("\n### 2nd Send failed %i\n",proc);     
+                         printf("\n###  Resend failed %i\n",proc);     
                     } //send questions
                     stat=get_proc_status(proc+I2C_PROC_LOWEST_ADDR);
                     tries--;
                 }//poll busy
-
-               
+                if(stat!=poll_busy){
+                   putchar('!');
+                }
 
             }else{
               printf("\n\n*********** Finished ***********");
@@ -405,7 +378,6 @@ void do_controller(char dbg){
      }//while
 }
 
-
 int wait_for_touch(){
     printf("Wait for Touch\n");
 
@@ -430,7 +402,6 @@ int wait_for_touch(){
              GFX_fillRect(x-5,y-5,10,10,0);
          }
        }
-
 
        //check buttons
        if(gpio_get(Back_but)==0){
@@ -472,7 +443,6 @@ int wait_for_touch(){
         }
 
         zoom=zoom/zoomspeed;
-
 
         if(debug>1)printf("touch Offsets %f,%f \n",xoffset,yoffset);
 

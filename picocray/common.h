@@ -11,6 +11,7 @@
 //static const uint I2C_BAUDRATE = 100000; // 100 kHz
 //static const uint I2C_BAUDRATE = 400000; // 400 kHz
 //works
+//static const uint I2C_BAUDRATE =  2000000; // 2000 kHz
 static const uint I2C_BAUDRATE =  3000000; // 2000 kHz
 //works, but only after procs have been allocated ???
 //static const uint I2C_BAUDRATE =  4000000; // 4000 kHz

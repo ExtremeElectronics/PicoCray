@@ -6,6 +6,15 @@
 //#include <hardware/adc.h>
 #include <stdlib.h>
 
+//if defined try to use core2
+#define usecore2 1;
+
+#ifdef usecore2
+  #include <pico/multicore.h>
+#endif
+
+volatile int procdone=0;
+
 // Our handler is called from the I2C ISR, so it must complete quickly. Blocking calls /
 // printing to stdio may interfere with interrupt handling.
 static void i2c_slave_handler(i2c_inst_t *i2c, i2c_slave_event_t event) {
@@ -98,11 +107,40 @@ int TestProcAssert(){
     return r;
 }
 
+
+// 2nd core code.
+void core1(){
+   double cdx;
+
+   while(1){  // core 2 runs FOREVER....
+       while(procdone==0){ //wait for somthing to do
+          tight_loop_contents();
+       }
+       
+       cdx=dchar.dx+dchar.step;
+       for(uint8_t lumps=1;lumps<LUMPSIZE;lumps+=2){
+           ichar.i[lumps]=mandelbrot(cdx,dchar.dy);
+           cdx=cdx+dchar.step*2;
+           if(debug)printf("x%f y%f s%f %i\n",cdx,dchar.dy,dchar.step,ichar.i[lumps]);
+           tight_loop_contents();
+       }
+       tight_loop_contents();
+       procdone=0; // signal core 2 done.
+    }    
+}
+
+
 void do_proc(){
-//     int dc=0;
+     int dc=0;
+     double dx;
      puts("\nI2C Slave selected\n");
-     
+  
      sleep_ms(1000+irand(5000)); //random delay starting proc.
+
+#ifdef usecore2
+     puts("\n starting core 2");
+     multicore_launch_core1(core1);
+#endif
 
      setup_proc_io();
      
@@ -125,7 +163,11 @@ void do_proc(){
      printf("\n Slave loop - Assert %i\n",TestProcAssert());
      printf("Listning on %02X\n",I2C_DEFAULT_ADDRESS);
      while(1){
-         sleep_us(100);
+         sleep_us(1000);
+         if (dc++>10000){ 
+           putchar('.');
+           dc=0;
+         }
          if(context.datachanged==true && context.data_received==true){ 
              context.datachanged=false;
               context.data_received=false;
@@ -165,12 +207,31 @@ void do_proc(){
                      for(int a=0;a<QUESTIONSIZE;a++){
                          dchar.arr[a]=context.mem[quest+a];
                      }
-                     for(uint8_t lumps=0;lumps<LUMPSIZE;lumps++){
-                         ichar.i[lumps]=mandelbrot(dchar.dx,dchar.dy);
-                         dchar.dx=dchar.dx+dchar.step;
-                         if(debug)printf("x%f y%f s%f %i\n",dchar.dx,dchar.dy,dchar.step,ichar.i[lumps]); 
+                     dx=dchar.dx;                     
+#ifdef usecore2      
+               
+                     procdone=1;
+                     for(uint8_t lumps=0;lumps<LUMPSIZE;lumps+=2){
+                         ichar.i[lumps]=mandelbrot(dx,dchar.dy);
+                         dx=dx+dchar.step*2;
+                         if(debug)printf("x%f y%f s%f %i\n",dx,dchar.dy,dchar.step,ichar.i[lumps]); 
                          tight_loop_contents();
                      }
+                     puts("Waiting for Core2\n");
+                     while(procdone!=0){ // wait for core2 to complete.
+                         tight_loop_contents();
+                     }
+#else
+
+                     for(uint8_t lumps=0;lumps<LUMPSIZE;lumps++){
+                         ichar.i[lumps]=mandelbrot(dx,dchar.dy);
+                         dx=dx+dchar.step;
+                         if(debug)printf("x%f y%f s%f %i\n",dx,dchar.dy,dchar.step,ichar.i[lumps]); 
+                         tight_loop_contents();
+                     }
+#endif
+
+                     
                      for(uint8_t a=0;a<ANSWERSIZE;a++){
                          context.mem[ans+a]=ichar.arr[a];
                      }           

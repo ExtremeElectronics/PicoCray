@@ -12,7 +12,6 @@
 
 int main() {
     // overclock a bit,... of course :) 
-
     set_sys_clock_khz(260000, true);
     
     stdio_init_all();
@@ -35,7 +34,12 @@ int main() {
         init_buttons();
 
         int c='z'; //start with a run
-        if (gpio_get(Back_but)==0){c=EOF;}
+//        int c=0; //start with a run
+        if (gpio_get(Back_but)==0){
+          c=EOF;
+          puts("Waiting for serial cmd\n");
+        }
+          
         
         setup_controller();
         init_leds();
