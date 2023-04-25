@@ -6,8 +6,10 @@
 #include <stdlib.h>
 
 //display includes
+//forDMA set USE_DMA in ili9341/ili9341.h
 #include "ili9341.h"
 #include "gfx.h"
+
 
 //load pallette
 //#include "pallette128.c"
@@ -16,8 +18,11 @@
 //#include "pallette16.c"
 
 //define the size of the mand
-const double MaxMandX = 240;
-const double MaxMandY = 320;
+#define DispX  (uint16_t)240
+#define DispY  (uint16_t)320
+
+const double MaxMandX = DispX;
+const double MaxMandY = DispY;
 
 double MandYOffset=0;
 double MandXOffset=0;
@@ -41,7 +46,10 @@ uint8_t code=0xaa;
 
 int mandx=0,mandy=0;
 
-//uint16_t results[MaxMandX * MaxMandY];
+
+
+//screen buffer
+uint16_t results[DispX*DispY];
 
 //uint16_t *buff = NULL;
 uint16_t buff[LUMPSIZE];
@@ -72,6 +80,21 @@ void init_disp(){
 }
 
 
+#ifdef USE_DMA 
+void write_lump_to_display(uint16_t x,uint16_t y,uint8_t * data ){
+    uint8_t lump;
+    int xy=x+y*DispX;
+    for (lump=0;lump<LUMPSIZE;lump++){
+        results[lump+xy]=mapping[data[lump] % MappingMax];
+    }
+}
+
+void write_results_to_display(){
+     LCD_WriteBitmap(0, 0,DispX,DispY, results);
+}
+
+#else
+
 void write_lump_to_display(uint16_t x,uint16_t y,uint8_t * data ){
     uint8_t lump;
     for (lump=0;lump<LUMPSIZE;lump++){
@@ -79,6 +102,9 @@ void write_lump_to_display(uint16_t x,uint16_t y,uint8_t * data ){
     }
     LCD_WriteBitmap(x, y, LUMPSIZE,1, buff);
 }
+
+
+#endif
 
 // Processor routines.
 
@@ -247,6 +273,8 @@ int do_answers(uint8_t proc){
      c=i2c_write_blocking(I2C_MOD, proc+I2C_PROC_LOWEST_ADDR, rbuf, 1, false);
      c=i2c_read_blocking(I2C_MOD, proc+I2C_PROC_LOWEST_ADDR, rbuf, ANSWERSIZE, true);
      if (c==ANSWERSIZE){
+         write_lump_to_display(coord[proc][0],coord[proc][1],rbuf );
+/* if ichar.i is not an array of uint_8 remove the line above and use this code.
          for(int a=0;a<ANSWERSIZE;a++){
              ichar.arr[a]=rbuf[a];
          }
@@ -255,7 +283,7 @@ int do_answers(uint8_t proc){
              printf("\n");
          }
          write_lump_to_display(coord[proc][0],coord[proc][1],ichar.i );    
-//         write_lump_to_display(coord[proc][0],coord[proc][1],ichar.arr );
+*/
          r=1;
          if (debug>1) puts("= Answer *****\n");  
      }else{
@@ -372,6 +400,10 @@ void do_controller(char dbg){
             //if finished(go=1) set go=2 for complete
             if (go==1){
                 go=0; //have all answers stop
+                
+#ifdef USE_DMA
+                write_results_to_display();
+#endif
                 puts("\n************ Complete **************");
             }
         }  // has done procs
