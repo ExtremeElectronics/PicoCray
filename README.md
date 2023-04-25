@@ -58,6 +58,8 @@ This continues until all of the Questions have been asked, and all of the Proces
 
 ### Display 
 Outputs the resultant Mandle to 240x320 display using the ili9341
+Defining USE_DMA in the ili9341.h changes the code to complete in a frame buffer then DMA to the display
+if USE_DMA isn't configured, the display is added to as it arrives from the processors. 
 
 ###I2C
 I've pushed the I2C to 3Mhz, its a trade off between speed and errors. Keep the wires short and terminate at both ends with 4k7's on both lines for best results.
