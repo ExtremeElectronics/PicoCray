@@ -62,8 +62,12 @@ Outputs the resultant Mandle to 240x320 display using the ili9341
 ###I2C
 I've pushed the I2C to 3Mhz, its a trade off between speed and errors. Keep the wires short and terminate at both ends with 4k7's on both lines for best results.
 
+### Test Code Mandlebrot. 
+Currently the Pico Cray runs a distributed version of the mandlebot program. The calculation is done in 120 point "lumps" sent to each procesor in turn. Each processor splits the calculations into odd and even x positions to split them between cores. The results are sent back into the I2C memory and a done flag is set when both cores have completed. 
+Taking a touch input allows you to zoom into the mandlebot to increasing "depth" until the precision of the double runs out (no frilly bits around the edges of the plot) 
+
 ### Palettes 
-For the mandle display there are a number of palettes ranging from 16 colours to 128 these need to be compiled in (controller only) change the unremarked includes in common.h
+For the mandle display there are a number of palettes ranging from 16 colours to 128 these need to be compiled in (controller only) change the remarked includes at the top of common.h
 
 
 # Warning
